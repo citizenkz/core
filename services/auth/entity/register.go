@@ -9,7 +9,7 @@ type (
 		Email           string    `json:"email"`
 		Password        string    `json:"password"`
 		ConfirmPassword string    `json:"confirm_password"`
-		BirthDate       time.Time `json:"birth_date"`
+		BirthDate       *time.Time `json:"birth_date"`
 	}
 
 	RegisterResponse struct {
