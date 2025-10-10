@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/citizenkz/core/app"
 	"github.com/citizenkz/core/config"
 )
 

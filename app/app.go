@@ -28,12 +28,14 @@ func New(cfg *config.Config, log *slog.Logger) Server {
 }
 
 func(s *server) Run() error {
-	entPsqlConnect := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s",
+	entPsqlConnect := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s sslmode=%s",
 		s.cfg.Database.Host,
 		s.cfg.Database.Port,
 		s.cfg.Database.User,
 		s.cfg.Database.Name,
-		s.cfg.Database.Password)
+		s.cfg.Database.Password,
+		s.cfg.Database.SSLMode,
+	)
 	
 	client, err := ent.Open("postgres", entPsqlConnect)
     if err != nil {
