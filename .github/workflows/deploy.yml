@@ -1,0 +1,31 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ release ]
+
+jobs:
+  deploy:
+    name: Deploy Application
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Run tests before deploy
+        run: go test ./... -v
+
+      - name: Build app
+        run: go build -o app ./cmd/app
+
+      - name: Deploy
+        run: |
+          echo "✅ Tests passed and build successful. Deploying..."
+          # scp -r ./app user@your-server:/path/to/app
+          # ssh user@your-server 'systemctl restart your-app'
