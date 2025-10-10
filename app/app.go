@@ -39,12 +39,12 @@ func(s *server) Run() error {
 	
 	client, err := ent.Open("postgres", entPsqlConnect)
     if err != nil {
-        s.log.Error("failed opening connection to postgres: %v", err)
+        s.log.Error("failed opening connection to postgres", slog.String("error", err.Error()))
     }
     defer client.Close()
 
     if err := client.Schema.Create(context.Background()); err != nil {
-        s.log.Error("failed creating schema resources: %v", err)
+        s.log.Error("failed creating schema resources", slog.String("error", err.Error()))
     }
 	return nil
 }
