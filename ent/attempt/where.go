@@ -4,7 +4,6 @@ package attempt
 
 import (
 	"entgo.io/ent/dialect/sql"
-	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/citizenkz/core/ent/predicate"
 	"github.com/google/uuid"
 )
@@ -192,29 +191,6 @@ func EmailEqualFold(v string) predicate.Attempt {
 // EmailContainsFold applies the ContainsFold predicate on the "email" field.
 func EmailContainsFold(v string) predicate.Attempt {
 	return predicate.Attempt(sql.FieldContainsFold(FieldEmail, v))
-}
-
-// HasAttempts applies the HasEdge predicate on the "attempts" edge.
-func HasAttempts() predicate.Attempt {
-	return predicate.Attempt(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, AttemptsTable, AttemptsPrimaryKey...),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasAttemptsWith applies the HasEdge predicate on the "attempts" edge with a given conditions (other predicates).
-func HasAttemptsWith(preds ...predicate.Attempt) predicate.Attempt {
-	return predicate.Attempt(func(s *sql.Selector) {
-		step := newAttemptsStep()
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
 }
 
 // And groups predicates with the AND operator between them.

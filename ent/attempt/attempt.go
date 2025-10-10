@@ -4,7 +4,6 @@ package attempt
 
 import (
 	"entgo.io/ent/dialect/sql"
-	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 )
 
@@ -17,12 +16,8 @@ const (
 	FieldOtp = "otp"
 	// FieldEmail holds the string denoting the email field in the database.
 	FieldEmail = "email"
-	// EdgeAttempts holds the string denoting the attempts edge name in mutations.
-	EdgeAttempts = "attempts"
 	// Table holds the table name of the attempt in the database.
 	Table = "attempts"
-	// AttemptsTable is the table that holds the attempts relation/edge. The primary key declared below.
-	AttemptsTable = "attempt_attempts"
 )
 
 // Columns holds all SQL columns for attempt fields.
@@ -31,12 +26,6 @@ var Columns = []string{
 	FieldOtp,
 	FieldEmail,
 }
-
-var (
-	// AttemptsPrimaryKey and AttemptsColumn2 are the table columns denoting the
-	// primary key for the attempts relation (M2M).
-	AttemptsPrimaryKey = []string{"attempt_id", "attempt_id"}
-)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
@@ -73,25 +62,4 @@ func ByOtp(opts ...sql.OrderTermOption) OrderOption {
 // ByEmail orders the results by the email field.
 func ByEmail(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEmail, opts...).ToFunc()
-}
-
-// ByAttemptsCount orders the results by attempts count.
-func ByAttemptsCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newAttemptsStep(), opts...)
-	}
-}
-
-// ByAttempts orders the results by attempts terms.
-func ByAttempts(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newAttemptsStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-func newAttemptsStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(Table, FieldID),
-		sqlgraph.Edge(sqlgraph.M2M, false, AttemptsTable, AttemptsPrimaryKey...),
-	)
 }

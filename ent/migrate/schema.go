@@ -36,40 +36,12 @@ var (
 		Columns:    UsersColumns,
 		PrimaryKey: []*schema.Column{UsersColumns[0]},
 	}
-	// AttemptAttemptsColumns holds the columns for the "attempt_attempts" table.
-	AttemptAttemptsColumns = []*schema.Column{
-		{Name: "attempt_id", Type: field.TypeUUID},
-		{Name: "attempt_id", Type: field.TypeUUID},
-	}
-	// AttemptAttemptsTable holds the schema information for the "attempt_attempts" table.
-	AttemptAttemptsTable = &schema.Table{
-		Name:       "attempt_attempts",
-		Columns:    AttemptAttemptsColumns,
-		PrimaryKey: []*schema.Column{AttemptAttemptsColumns[0], AttemptAttemptsColumns[1], AttemptAttemptsColumns[0], AttemptAttemptsColumns[1]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "attempt_attempts_attempt_id",
-				Columns:    []*schema.Column{AttemptAttemptsColumns[0], AttemptAttemptsColumns[1]},
-				RefColumns: []*schema.Column{AttemptsColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-			{
-				Symbol:     "attempt_attempts_attempt_id",
-				Columns:    []*schema.Column{AttemptAttemptsColumns[0], AttemptAttemptsColumns[1]},
-				RefColumns: []*schema.Column{AttemptsColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-		},
-	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		AttemptsTable,
 		UsersTable,
-		AttemptAttemptsTable,
 	}
 )
 
 func init() {
-	AttemptAttemptsTable.ForeignKeys[0].RefTable = AttemptsTable
-	AttemptAttemptsTable.ForeignKeys[1].RefTable = AttemptsTable
 }

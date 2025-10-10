@@ -20,29 +20,8 @@ type Attempt struct {
 	// Otp holds the value of the "otp" field.
 	Otp string `json:"otp,omitempty"`
 	// Email holds the value of the "email" field.
-	Email string `json:"email,omitempty"`
-	// Edges holds the relations/edges for other nodes in the graph.
-	// The values are being populated by the AttemptQuery when eager-loading is set.
-	Edges        AttemptEdges `json:"edges"`
+	Email        string `json:"email,omitempty"`
 	selectValues sql.SelectValues
-}
-
-// AttemptEdges holds the relations/edges for other nodes in the graph.
-type AttemptEdges struct {
-	// Attempts holds the value of the attempts edge.
-	Attempts []*Attempt `json:"attempts,omitempty"`
-	// loadedTypes holds the information for reporting if a
-	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
-}
-
-// AttemptsOrErr returns the Attempts value or an error if the edge
-// was not loaded in eager-loading.
-func (e AttemptEdges) AttemptsOrErr() ([]*Attempt, error) {
-	if e.loadedTypes[0] {
-		return e.Attempts, nil
-	}
-	return nil, &NotLoadedError{edge: "attempts"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -98,11 +77,6 @@ func (_m *Attempt) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (_m *Attempt) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
-}
-
-// QueryAttempts queries the "attempts" edge of the Attempt entity.
-func (_m *Attempt) QueryAttempts() *AttemptQuery {
-	return NewAttemptClient(_m.config).QueryAttempts(_m)
 }
 
 // Update returns a builder for updating this Attempt.
