@@ -5,14 +5,30 @@ package ent
 import (
 	"time"
 
+	"github.com/citizenkz/core/ent/attempt"
 	"github.com/citizenkz/core/ent/schema"
 	"github.com/citizenkz/core/ent/user"
+	"github.com/google/uuid"
 )
 
 // The init function reads all schema descriptors with runtime code
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	attemptFields := schema.Attempt{}.Fields()
+	_ = attemptFields
+	// attemptDescOtp is the schema descriptor for otp field.
+	attemptDescOtp := attemptFields[1].Descriptor()
+	// attempt.OtpValidator is a validator for the "otp" field. It is called by the builders before save.
+	attempt.OtpValidator = attemptDescOtp.Validators[0].(func(string) error)
+	// attemptDescEmail is the schema descriptor for email field.
+	attemptDescEmail := attemptFields[2].Descriptor()
+	// attempt.EmailValidator is a validator for the "email" field. It is called by the builders before save.
+	attempt.EmailValidator = attemptDescEmail.Validators[0].(func(string) error)
+	// attemptDescID is the schema descriptor for id field.
+	attemptDescID := attemptFields[0].Descriptor()
+	// attempt.DefaultID holds the default value on creation for the id field.
+	attempt.DefaultID = attemptDescID.Default.(func() uuid.UUID)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescFirstName is the schema descriptor for first_name field.

@@ -4,8 +4,11 @@ go 1.23.0
 
 require (
 	entgo.io/ent v0.14.5
+	github.com/golang-jwt/jwt/v5 v5.3.0
+	github.com/google/uuid v1.3.0
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/lib/pq v1.10.9
+	golang.org/x/crypto v0.0.0-20220517005047-85d78b3ac167
 )
 
 require (
@@ -16,7 +19,6 @@ require (
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/go-openapi/inflect v0.19.0 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/hcl/v2 v2.18.1 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect

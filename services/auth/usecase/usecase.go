@@ -6,12 +6,12 @@ import (
 
 	"github.com/citizenkz/core/config"
 	"github.com/citizenkz/core/services/auth/entity"
-	"golang.org/x/mod/sumdb/storage"
+	"github.com/citizenkz/core/services/auth/storage"
 )
 
 type usecase struct {
 	log     *slog.Logger
-	storage *storage.Storage
+	storage storage.Storage
 	cfg     *config.Config
 }
 
@@ -26,7 +26,7 @@ type UseCase interface{
 	ForgetPasswordConfirm(ctx context.Context, req *entity.ForgetPasswordConfirmRequest) (*entity.ForgetPasswordConfirmResponse, error)
 }
 
-func New(log *slog.Logger, storage *storage.Storage, cfg *config.Config) UseCase {
+func New(log *slog.Logger, storage storage.Storage, cfg *config.Config) UseCase {
 	return &usecase{
 		log:     log,
 		storage: storage,

@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/citizenkz/core/ent/attempt"
 	"github.com/citizenkz/core/ent/user"
 )
 
@@ -73,7 +74,8 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			user.Table: user.ValidColumn,
+			attempt.Table: attempt.ValidColumn,
+			user.Table:    user.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)
