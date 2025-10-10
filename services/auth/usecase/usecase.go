@@ -17,7 +17,7 @@ type usecase struct {
 
 type UseCase interface{
 	Login(ctx context.Context, req *entity.LoginRequest) (*entity.LoginResponse, error)
-	Register(ctx context.Context, req *entity.RegisterRequest) (*entity.RegisterRequest, error)
+	Register(ctx context.Context, req *entity.RegisterRequest) (*entity.RegisterResponse, error)
 	GetProfile(ctx context.Context, req *entity.GetRequest) (*entity.GetResponse, error)
 	Update(ctx context.Context, req *entity.UpdateRequest) (*entity.UpdateResponse, error)
 	UpdateEmail(ctx context.Context, req *entity.UpdateEmailRequest) (*entity.UpdateEmailResponse, error)

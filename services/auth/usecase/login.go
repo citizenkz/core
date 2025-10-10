@@ -27,9 +27,9 @@ func (u *usecase) Login(ctx context.Context, req *entity.LoginRequest) (*entity.
 		u.log.Error("failed to jwt.Generate", slog.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to generate token: %w", err)
 	}
-	
+
 	return &entity.LoginResponse{
-		Token: token,
+		Token:   token,
 		Profile: *user,
 	}, nil
 }
