@@ -12,7 +12,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/citizenkz/core/ent/attempt"
 	"github.com/citizenkz/core/ent/predicate"
-	"github.com/google/uuid"
 )
 
 // AttemptUpdate is the builder for updating Attempt entities.
@@ -56,45 +55,9 @@ func (_u *AttemptUpdate) SetNillableEmail(v *string) *AttemptUpdate {
 	return _u
 }
 
-// AddAttemptIDs adds the "attempts" edge to the Attempt entity by IDs.
-func (_u *AttemptUpdate) AddAttemptIDs(ids ...uuid.UUID) *AttemptUpdate {
-	_u.mutation.AddAttemptIDs(ids...)
-	return _u
-}
-
-// AddAttempts adds the "attempts" edges to the Attempt entity.
-func (_u *AttemptUpdate) AddAttempts(v ...*Attempt) *AttemptUpdate {
-	ids := make([]uuid.UUID, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddAttemptIDs(ids...)
-}
-
 // Mutation returns the AttemptMutation object of the builder.
 func (_u *AttemptUpdate) Mutation() *AttemptMutation {
 	return _u.mutation
-}
-
-// ClearAttempts clears all "attempts" edges to the Attempt entity.
-func (_u *AttemptUpdate) ClearAttempts() *AttemptUpdate {
-	_u.mutation.ClearAttempts()
-	return _u
-}
-
-// RemoveAttemptIDs removes the "attempts" edge to Attempt entities by IDs.
-func (_u *AttemptUpdate) RemoveAttemptIDs(ids ...uuid.UUID) *AttemptUpdate {
-	_u.mutation.RemoveAttemptIDs(ids...)
-	return _u
-}
-
-// RemoveAttempts removes "attempts" edges to Attempt entities.
-func (_u *AttemptUpdate) RemoveAttempts(v ...*Attempt) *AttemptUpdate {
-	ids := make([]uuid.UUID, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.RemoveAttemptIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -157,51 +120,6 @@ func (_u *AttemptUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.Email(); ok {
 		_spec.SetField(attempt.FieldEmail, field.TypeString, value)
 	}
-	if _u.mutation.AttemptsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: false,
-			Table:   attempt.AttemptsTable,
-			Columns: attempt.AttemptsPrimaryKey,
-			Bidi:    true,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(attempt.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.RemovedAttemptsIDs(); len(nodes) > 0 && !_u.mutation.AttemptsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: false,
-			Table:   attempt.AttemptsTable,
-			Columns: attempt.AttemptsPrimaryKey,
-			Bidi:    true,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(attempt.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.AttemptsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: false,
-			Table:   attempt.AttemptsTable,
-			Columns: attempt.AttemptsPrimaryKey,
-			Bidi:    true,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(attempt.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{attempt.Label}
@@ -250,45 +168,9 @@ func (_u *AttemptUpdateOne) SetNillableEmail(v *string) *AttemptUpdateOne {
 	return _u
 }
 
-// AddAttemptIDs adds the "attempts" edge to the Attempt entity by IDs.
-func (_u *AttemptUpdateOne) AddAttemptIDs(ids ...uuid.UUID) *AttemptUpdateOne {
-	_u.mutation.AddAttemptIDs(ids...)
-	return _u
-}
-
-// AddAttempts adds the "attempts" edges to the Attempt entity.
-func (_u *AttemptUpdateOne) AddAttempts(v ...*Attempt) *AttemptUpdateOne {
-	ids := make([]uuid.UUID, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.AddAttemptIDs(ids...)
-}
-
 // Mutation returns the AttemptMutation object of the builder.
 func (_u *AttemptUpdateOne) Mutation() *AttemptMutation {
 	return _u.mutation
-}
-
-// ClearAttempts clears all "attempts" edges to the Attempt entity.
-func (_u *AttemptUpdateOne) ClearAttempts() *AttemptUpdateOne {
-	_u.mutation.ClearAttempts()
-	return _u
-}
-
-// RemoveAttemptIDs removes the "attempts" edge to Attempt entities by IDs.
-func (_u *AttemptUpdateOne) RemoveAttemptIDs(ids ...uuid.UUID) *AttemptUpdateOne {
-	_u.mutation.RemoveAttemptIDs(ids...)
-	return _u
-}
-
-// RemoveAttempts removes "attempts" edges to Attempt entities.
-func (_u *AttemptUpdateOne) RemoveAttempts(v ...*Attempt) *AttemptUpdateOne {
-	ids := make([]uuid.UUID, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _u.RemoveAttemptIDs(ids...)
 }
 
 // Where appends a list predicates to the AttemptUpdate builder.
@@ -380,51 +262,6 @@ func (_u *AttemptUpdateOne) sqlSave(ctx context.Context) (_node *Attempt, err er
 	}
 	if value, ok := _u.mutation.Email(); ok {
 		_spec.SetField(attempt.FieldEmail, field.TypeString, value)
-	}
-	if _u.mutation.AttemptsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: false,
-			Table:   attempt.AttemptsTable,
-			Columns: attempt.AttemptsPrimaryKey,
-			Bidi:    true,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(attempt.FieldID, field.TypeUUID),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.RemovedAttemptsIDs(); len(nodes) > 0 && !_u.mutation.AttemptsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: false,
-			Table:   attempt.AttemptsTable,
-			Columns: attempt.AttemptsPrimaryKey,
-			Bidi:    true,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(attempt.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := _u.mutation.AttemptsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: false,
-			Table:   attempt.AttemptsTable,
-			Columns: attempt.AttemptsPrimaryKey,
-			Bidi:    true,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(attempt.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Attempt{config: _u.config}
 	_spec.Assign = _node.assignValues

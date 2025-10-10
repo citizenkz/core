@@ -3,6 +3,8 @@ package jwt
 import (
 	"context"
 	"errors"
+	"net/http"
+	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -26,4 +28,18 @@ func ParseUserID(ctx context.Context, tokenString string, secret string) (int, e
 	}
 
 	return 0, errors.New("invalid token")
+}
+
+func ParseTokenFromHeader(r *http.Request) (string, error) {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		return "", errors.New("authorization header missing")
+	}
+
+	parts := strings.Fields(authHeader)
+	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
+		return "", errors.New("authorization header format must be Bearer {token}")
+	}
+
+	return parts[1], nil
 }

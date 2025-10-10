@@ -4,7 +4,6 @@ package ent
 
 import (
 	"context"
-	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -20,11 +19,10 @@ import (
 // AttemptQuery is the builder for querying Attempt entities.
 type AttemptQuery struct {
 	config
-	ctx          *QueryContext
-	order        []attempt.OrderOption
-	inters       []Interceptor
-	predicates   []predicate.Attempt
-	withAttempts *AttemptQuery
+	ctx        *QueryContext
+	order      []attempt.OrderOption
+	inters     []Interceptor
+	predicates []predicate.Attempt
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -59,28 +57,6 @@ func (_q *AttemptQuery) Unique(unique bool) *AttemptQuery {
 func (_q *AttemptQuery) Order(o ...attempt.OrderOption) *AttemptQuery {
 	_q.order = append(_q.order, o...)
 	return _q
-}
-
-// QueryAttempts chains the current query on the "attempts" edge.
-func (_q *AttemptQuery) QueryAttempts() *AttemptQuery {
-	query := (&AttemptClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(attempt.Table, attempt.FieldID, selector),
-			sqlgraph.To(attempt.Table, attempt.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, attempt.AttemptsTable, attempt.AttemptsPrimaryKey...),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
 }
 
 // First returns the first Attempt entity from the query.
@@ -270,27 +246,15 @@ func (_q *AttemptQuery) Clone() *AttemptQuery {
 		return nil
 	}
 	return &AttemptQuery{
-		config:       _q.config,
-		ctx:          _q.ctx.Clone(),
-		order:        append([]attempt.OrderOption{}, _q.order...),
-		inters:       append([]Interceptor{}, _q.inters...),
-		predicates:   append([]predicate.Attempt{}, _q.predicates...),
-		withAttempts: _q.withAttempts.Clone(),
+		config:     _q.config,
+		ctx:        _q.ctx.Clone(),
+		order:      append([]attempt.OrderOption{}, _q.order...),
+		inters:     append([]Interceptor{}, _q.inters...),
+		predicates: append([]predicate.Attempt{}, _q.predicates...),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
-}
-
-// WithAttempts tells the query-builder to eager-load the nodes that are connected to
-// the "attempts" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *AttemptQuery) WithAttempts(opts ...func(*AttemptQuery)) *AttemptQuery {
-	query := (&AttemptClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withAttempts = query
-	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -369,11 +333,8 @@ func (_q *AttemptQuery) prepareQuery(ctx context.Context) error {
 
 func (_q *AttemptQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Attempt, error) {
 	var (
-		nodes       = []*Attempt{}
-		_spec       = _q.querySpec()
-		loadedTypes = [1]bool{
-			_q.withAttempts != nil,
-		}
+		nodes = []*Attempt{}
+		_spec = _q.querySpec()
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Attempt).scanValues(nil, columns)
@@ -381,7 +342,6 @@ func (_q *AttemptQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Atte
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &Attempt{config: _q.config}
 		nodes = append(nodes, node)
-		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	for i := range hooks {
@@ -393,76 +353,7 @@ func (_q *AttemptQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Atte
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := _q.withAttempts; query != nil {
-		if err := _q.loadAttempts(ctx, query, nodes,
-			func(n *Attempt) { n.Edges.Attempts = []*Attempt{} },
-			func(n *Attempt, e *Attempt) { n.Edges.Attempts = append(n.Edges.Attempts, e) }); err != nil {
-			return nil, err
-		}
-	}
 	return nodes, nil
-}
-
-func (_q *AttemptQuery) loadAttempts(ctx context.Context, query *AttemptQuery, nodes []*Attempt, init func(*Attempt), assign func(*Attempt, *Attempt)) error {
-	edgeIDs := make([]driver.Value, len(nodes))
-	byID := make(map[uuid.UUID]*Attempt)
-	nids := make(map[uuid.UUID]map[*Attempt]struct{})
-	for i, node := range nodes {
-		edgeIDs[i] = node.ID
-		byID[node.ID] = node
-		if init != nil {
-			init(node)
-		}
-	}
-	query.Where(func(s *sql.Selector) {
-		joinT := sql.Table(attempt.AttemptsTable)
-		s.Join(joinT).On(s.C(attempt.FieldID), joinT.C(attempt.AttemptsPrimaryKey[1]))
-		s.Where(sql.InValues(joinT.C(attempt.AttemptsPrimaryKey[0]), edgeIDs...))
-		columns := s.SelectedColumns()
-		s.Select(joinT.C(attempt.AttemptsPrimaryKey[0]))
-		s.AppendSelect(columns...)
-		s.SetDistinct(false)
-	})
-	if err := query.prepareQuery(ctx); err != nil {
-		return err
-	}
-	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
-		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
-			assign := spec.Assign
-			values := spec.ScanValues
-			spec.ScanValues = func(columns []string) ([]any, error) {
-				values, err := values(columns[1:])
-				if err != nil {
-					return nil, err
-				}
-				return append([]any{new(uuid.UUID)}, values...), nil
-			}
-			spec.Assign = func(columns []string, values []any) error {
-				outValue := *values[0].(*uuid.UUID)
-				inValue := *values[1].(*uuid.UUID)
-				if nids[inValue] == nil {
-					nids[inValue] = map[*Attempt]struct{}{byID[outValue]: {}}
-					return assign(columns[1:], values[1:])
-				}
-				nids[inValue][byID[outValue]] = struct{}{}
-				return nil
-			}
-		})
-	})
-	neighbors, err := withInterceptors[[]*Attempt](ctx, query, qr, query.inters)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected "attempts" node returned %v`, n.ID)
-		}
-		for kn := range nodes {
-			assign(kn, n)
-		}
-	}
-	return nil
 }
 
 func (_q *AttemptQuery) sqlCount(ctx context.Context) (int, error) {

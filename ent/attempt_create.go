@@ -46,21 +46,6 @@ func (_c *AttemptCreate) SetNillableID(v *uuid.UUID) *AttemptCreate {
 	return _c
 }
 
-// AddAttemptIDs adds the "attempts" edge to the Attempt entity by IDs.
-func (_c *AttemptCreate) AddAttemptIDs(ids ...uuid.UUID) *AttemptCreate {
-	_c.mutation.AddAttemptIDs(ids...)
-	return _c
-}
-
-// AddAttempts adds the "attempts" edges to the Attempt entity.
-func (_c *AttemptCreate) AddAttempts(v ...*Attempt) *AttemptCreate {
-	ids := make([]uuid.UUID, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _c.AddAttemptIDs(ids...)
-}
-
 // Mutation returns the AttemptMutation object of the builder.
 func (_c *AttemptCreate) Mutation() *AttemptMutation {
 	return _c.mutation
@@ -162,22 +147,6 @@ func (_c *AttemptCreate) createSpec() (*Attempt, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Email(); ok {
 		_spec.SetField(attempt.FieldEmail, field.TypeString, value)
 		_node.Email = value
-	}
-	if nodes := _c.mutation.AttemptsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: false,
-			Table:   attempt.AttemptsTable,
-			Columns: attempt.AttemptsPrimaryKey,
-			Bidi:    true,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(attempt.FieldID, field.TypeUUID),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

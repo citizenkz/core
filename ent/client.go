@@ -15,7 +15,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
-	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/citizenkz/core/ent/attempt"
 	"github.com/citizenkz/core/ent/user"
 )
@@ -314,22 +313,6 @@ func (c *AttemptClient) GetX(ctx context.Context, id uuid.UUID) *Attempt {
 		panic(err)
 	}
 	return obj
-}
-
-// QueryAttempts queries the attempts edge of a Attempt.
-func (c *AttemptClient) QueryAttempts(_m *Attempt) *AttemptQuery {
-	query := (&AttemptClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(attempt.Table, attempt.FieldID, id),
-			sqlgraph.To(attempt.Table, attempt.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, attempt.AttemptsTable, attempt.AttemptsPrimaryKey...),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
 }
 
 // Hooks returns the client hooks.

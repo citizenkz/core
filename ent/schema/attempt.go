@@ -2,7 +2,6 @@ package schema
 
 import (
 	"entgo.io/ent"
-	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"github.com/citizenkz/core/utils/gen"
 	"github.com/google/uuid"
@@ -27,7 +26,5 @@ func (Attempt) Fields() []ent.Field {
 
 // Edges of the Attempt.
 func (Attempt) Edges() []ent.Edge {
-	return []ent.Edge{
-		edge.To("attempts", Attempt.Type),
-	}
+	return []ent.Edge{}
 }

@@ -1,8 +1,5 @@
-build:
-	@go build -o bin/citizen ./main.go
+down:
+	@docker compose down
 
-run: build
-	@./bin/citizen --config=./local.yaml
-
-test:
-	@go test -v ./...
+start: down
+	@docker compose up --build -d

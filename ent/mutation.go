@@ -33,18 +33,15 @@ const (
 // AttemptMutation represents an operation that mutates the Attempt nodes in the graph.
 type AttemptMutation struct {
 	config
-	op              Op
-	typ             string
-	id              *uuid.UUID
-	otp             *string
-	email           *string
-	clearedFields   map[string]struct{}
-	attempts        map[uuid.UUID]struct{}
-	removedattempts map[uuid.UUID]struct{}
-	clearedattempts bool
-	done            bool
-	oldValue        func(context.Context) (*Attempt, error)
-	predicates      []predicate.Attempt
+	op            Op
+	typ           string
+	id            *uuid.UUID
+	otp           *string
+	email         *string
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*Attempt, error)
+	predicates    []predicate.Attempt
 }
 
 var _ ent.Mutation = (*AttemptMutation)(nil)
@@ -223,60 +220,6 @@ func (m *AttemptMutation) ResetEmail() {
 	m.email = nil
 }
 
-// AddAttemptIDs adds the "attempts" edge to the Attempt entity by ids.
-func (m *AttemptMutation) AddAttemptIDs(ids ...uuid.UUID) {
-	if m.attempts == nil {
-		m.attempts = make(map[uuid.UUID]struct{})
-	}
-	for i := range ids {
-		m.attempts[ids[i]] = struct{}{}
-	}
-}
-
-// ClearAttempts clears the "attempts" edge to the Attempt entity.
-func (m *AttemptMutation) ClearAttempts() {
-	m.clearedattempts = true
-}
-
-// AttemptsCleared reports if the "attempts" edge to the Attempt entity was cleared.
-func (m *AttemptMutation) AttemptsCleared() bool {
-	return m.clearedattempts
-}
-
-// RemoveAttemptIDs removes the "attempts" edge to the Attempt entity by IDs.
-func (m *AttemptMutation) RemoveAttemptIDs(ids ...uuid.UUID) {
-	if m.removedattempts == nil {
-		m.removedattempts = make(map[uuid.UUID]struct{})
-	}
-	for i := range ids {
-		delete(m.attempts, ids[i])
-		m.removedattempts[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedAttempts returns the removed IDs of the "attempts" edge to the Attempt entity.
-func (m *AttemptMutation) RemovedAttemptsIDs() (ids []uuid.UUID) {
-	for id := range m.removedattempts {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// AttemptsIDs returns the "attempts" edge IDs in the mutation.
-func (m *AttemptMutation) AttemptsIDs() (ids []uuid.UUID) {
-	for id := range m.attempts {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetAttempts resets all changes to the "attempts" edge.
-func (m *AttemptMutation) ResetAttempts() {
-	m.attempts = nil
-	m.clearedattempts = false
-	m.removedattempts = nil
-}
-
 // Where appends a list predicates to the AttemptMutation builder.
 func (m *AttemptMutation) Where(ps ...predicate.Attempt) {
 	m.predicates = append(m.predicates, ps...)
@@ -427,85 +370,49 @@ func (m *AttemptMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *AttemptMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
-	if m.attempts != nil {
-		edges = append(edges, attempt.EdgeAttempts)
-	}
+	edges := make([]string, 0, 0)
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *AttemptMutation) AddedIDs(name string) []ent.Value {
-	switch name {
-	case attempt.EdgeAttempts:
-		ids := make([]ent.Value, 0, len(m.attempts))
-		for id := range m.attempts {
-			ids = append(ids, id)
-		}
-		return ids
-	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *AttemptMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
-	if m.removedattempts != nil {
-		edges = append(edges, attempt.EdgeAttempts)
-	}
+	edges := make([]string, 0, 0)
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *AttemptMutation) RemovedIDs(name string) []ent.Value {
-	switch name {
-	case attempt.EdgeAttempts:
-		ids := make([]ent.Value, 0, len(m.removedattempts))
-		for id := range m.removedattempts {
-			ids = append(ids, id)
-		}
-		return ids
-	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *AttemptMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
-	if m.clearedattempts {
-		edges = append(edges, attempt.EdgeAttempts)
-	}
+	edges := make([]string, 0, 0)
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *AttemptMutation) EdgeCleared(name string) bool {
-	switch name {
-	case attempt.EdgeAttempts:
-		return m.clearedattempts
-	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *AttemptMutation) ClearEdge(name string) error {
-	switch name {
-	}
 	return fmt.Errorf("unknown Attempt unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *AttemptMutation) ResetEdge(name string) error {
-	switch name {
-	case attempt.EdgeAttempts:
-		m.ResetAttempts()
-		return nil
-	}
 	return fmt.Errorf("unknown Attempt edge %s", name)
 }
 
