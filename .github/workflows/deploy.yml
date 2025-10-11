@@ -21,9 +21,6 @@ jobs:
       - name: Run tests before deploy
         run: go test ./... -v
 
-      - name: Build app
-        run: go build -o app ./cmd/app
-
       - name: Deploy to Server via SSH
         env:
           SSH_ADDRESS: ${{ secrets.SSH_ADDRESS }}
