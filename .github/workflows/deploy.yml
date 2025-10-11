@@ -24,8 +24,16 @@ jobs:
       - name: Build app
         run: go build -o app ./cmd/app
 
-      - name: Deploy
+      - name: Deploy to Server via SSH
+        env:
+          SSH_ADDRESS: ${{ secrets.SSH_ADDRESS }}
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |
-          echo "✅ Tests passed and build successful. Deploying..."
-          # scp -r ./app user@your-server:/path/to/app
-          # ssh user@your-server 'systemctl restart your-app'
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+
+          echo "✅ Deploying to $SSH_ADDRESS..."
+
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no root@$SSH_ADDRESS 'cd /root/core && git pull'
+
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no root@$SSH_ADDRESS 'cd /root/core && make start &'
