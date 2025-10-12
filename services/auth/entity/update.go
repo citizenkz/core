@@ -4,8 +4,9 @@ import "time"
 
 type (
 	UpdateRequest struct {
-		FirstName string    `json:"first_name"`
-		LastName  string    `json:"last_name"`
+		ID        int        `json:"user_id"`
+		FirstName string     `json:"first_name"`
+		LastName  string     `json:"last_name"`
 		BirthDate *time.Time `json:"birth_date"`
 	}
 

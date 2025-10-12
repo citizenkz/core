@@ -19,8 +19,8 @@ type Storage interface {
 	GetUserByEmail(ctx context.Context, email string) (*entity.User, error)
 	GetUserByID(ctx context.Context, userID int) (*entity.User, error)
 	UpdateUser(ctx context.Context, req *entity.UpdateRequest) (*entity.User, error)
-	UpdateUserPassword(ctx context.Context, password string) (*entity.User, error)
-	UpdateUserEmail(ctx context.Context, email string) (*entity.User, error)
+	UpdateUserPassword(ctx context.Context, userID int, password string) (*entity.User, error)
+	UpdateUserEmail(ctx context.Context, userID int, email string) (*entity.User, error)
 }
 
 func New(client *ent.Client, log *slog.Logger) Storage {
@@ -70,7 +70,7 @@ func (s *storage) GetUserByID(ctx context.Context, userID int) (*entity.User, er
 }
 
 func (s *storage) UpdateUser(ctx context.Context, req *entity.UpdateRequest) (*entity.User, error) {
-	userID, err := s.client.User.Update().
+	user, err := s.client.User.UpdateOneID(req.ID).
 		SetFirstName(req.FirstName).
 		SetLastName(req.LastName).
 		SetNillableBirthDate(req.BirthDate).
@@ -80,16 +80,11 @@ func (s *storage) UpdateUser(ctx context.Context, req *entity.UpdateRequest) (*e
 		return nil, err
 	}
 
-	user, err := s.GetUserByID(ctx, userID)
-	if err != nil {
-		s.log.Error("failed to get user by id", slog.String("error", err.Error()))
-	}
-
-	return user, nil
+	return entity.MakeStorageUserToEntity(user), nil
 }
 
-func (s *storage) UpdateUserPassword(ctx context.Context, password string) (*entity.User, error) {
-	userID, err := s.client.User.Update().
+func (s *storage) UpdateUserPassword(ctx context.Context, userID int, password string) (*entity.User, error) {
+	user, err := s.client.User.UpdateOneID(userID).
 		SetPassword(password).
 		Save(ctx)
 	if err != nil {
@@ -97,16 +92,11 @@ func (s *storage) UpdateUserPassword(ctx context.Context, password string) (*ent
 		return nil, err
 	}
 
-	user, err := s.GetUserByID(ctx, userID)
-	if err != nil {
-		s.log.Error("failed to get user by id", slog.String("error", err.Error()))
-	}
-
-	return user, nil
+	return entity.MakeStorageUserToEntity(user), nil
 }
 
-func (s *storage) UpdateUserEmail(ctx context.Context, email string) (*entity.User, error) {
-	userID, err := s.client.User.Update().
+func (s *storage) UpdateUserEmail(ctx context.Context, userID int, email string) (*entity.User, error) {
+	user, err := s.client.User.UpdateOneID(userID).
 		SetEmail(email).
 		Save(ctx)
 	if err != nil {
@@ -114,10 +104,5 @@ func (s *storage) UpdateUserEmail(ctx context.Context, email string) (*entity.Us
 		return nil, err
 	}
 
-	user, err := s.GetUserByID(ctx, userID)
-	if err != nil {
-		s.log.Error("failed to get user by id", slog.String("error", err.Error()))
-	}
-
-	return user, nil
+	return entity.MakeStorageUserToEntity(user), nil
 }

@@ -1,4 +1,4 @@
-package entity
+package consts
 
 type FilterType string
 

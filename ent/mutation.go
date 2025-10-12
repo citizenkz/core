@@ -12,8 +12,10 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/citizenkz/core/ent/attempt"
+	"github.com/citizenkz/core/ent/filter"
 	"github.com/citizenkz/core/ent/predicate"
 	"github.com/citizenkz/core/ent/user"
+	"github.com/citizenkz/core/ent/userfilter"
 	"github.com/google/uuid"
 )
 
@@ -26,8 +28,10 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeAttempt = "Attempt"
-	TypeUser    = "User"
+	TypeAttempt    = "Attempt"
+	TypeFilter     = "Filter"
+	TypeUser       = "User"
+	TypeUserFilter = "UserFilter"
 )
 
 // AttemptMutation represents an operation that mutates the Attempt nodes in the graph.
@@ -416,22 +420,644 @@ func (m *AttemptMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown Attempt edge %s", name)
 }
 
+// FilterMutation represents an operation that mutates the Filter nodes in the graph.
+type FilterMutation struct {
+	config
+	op                  Op
+	typ                 string
+	id                  *int
+	name                *string
+	hint                *string
+	_type               *filter.Type
+	values              *[]string
+	appendvalues        []string
+	clearedFields       map[string]struct{}
+	user_filters        map[int]struct{}
+	removeduser_filters map[int]struct{}
+	cleareduser_filters bool
+	done                bool
+	oldValue            func(context.Context) (*Filter, error)
+	predicates          []predicate.Filter
+}
+
+var _ ent.Mutation = (*FilterMutation)(nil)
+
+// filterOption allows management of the mutation configuration using functional options.
+type filterOption func(*FilterMutation)
+
+// newFilterMutation creates new mutation for the Filter entity.
+func newFilterMutation(c config, op Op, opts ...filterOption) *FilterMutation {
+	m := &FilterMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeFilter,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withFilterID sets the ID field of the mutation.
+func withFilterID(id int) filterOption {
+	return func(m *FilterMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Filter
+		)
+		m.oldValue = func(ctx context.Context) (*Filter, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Filter.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withFilter sets the old Filter of the mutation.
+func withFilter(node *Filter) filterOption {
+	return func(m *FilterMutation) {
+		m.oldValue = func(context.Context) (*Filter, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m FilterMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m FilterMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *FilterMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *FilterMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Filter.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetName sets the "name" field.
+func (m *FilterMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *FilterMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the Filter entity.
+// If the Filter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FilterMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *FilterMutation) ResetName() {
+	m.name = nil
+}
+
+// SetHint sets the "hint" field.
+func (m *FilterMutation) SetHint(s string) {
+	m.hint = &s
+}
+
+// Hint returns the value of the "hint" field in the mutation.
+func (m *FilterMutation) Hint() (r string, exists bool) {
+	v := m.hint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHint returns the old "hint" field's value of the Filter entity.
+// If the Filter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FilterMutation) OldHint(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHint is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHint requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHint: %w", err)
+	}
+	return oldValue.Hint, nil
+}
+
+// ClearHint clears the value of the "hint" field.
+func (m *FilterMutation) ClearHint() {
+	m.hint = nil
+	m.clearedFields[filter.FieldHint] = struct{}{}
+}
+
+// HintCleared returns if the "hint" field was cleared in this mutation.
+func (m *FilterMutation) HintCleared() bool {
+	_, ok := m.clearedFields[filter.FieldHint]
+	return ok
+}
+
+// ResetHint resets all changes to the "hint" field.
+func (m *FilterMutation) ResetHint() {
+	m.hint = nil
+	delete(m.clearedFields, filter.FieldHint)
+}
+
+// SetType sets the "type" field.
+func (m *FilterMutation) SetType(f filter.Type) {
+	m._type = &f
+}
+
+// GetType returns the value of the "type" field in the mutation.
+func (m *FilterMutation) GetType() (r filter.Type, exists bool) {
+	v := m._type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldType returns the old "type" field's value of the Filter entity.
+// If the Filter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FilterMutation) OldType(ctx context.Context) (v filter.Type, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldType: %w", err)
+	}
+	return oldValue.Type, nil
+}
+
+// ResetType resets all changes to the "type" field.
+func (m *FilterMutation) ResetType() {
+	m._type = nil
+}
+
+// SetValues sets the "values" field.
+func (m *FilterMutation) SetValues(s []string) {
+	m.values = &s
+	m.appendvalues = nil
+}
+
+// Values returns the value of the "values" field in the mutation.
+func (m *FilterMutation) Values() (r []string, exists bool) {
+	v := m.values
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldValues returns the old "values" field's value of the Filter entity.
+// If the Filter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FilterMutation) OldValues(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldValues is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldValues requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldValues: %w", err)
+	}
+	return oldValue.Values, nil
+}
+
+// AppendValues adds s to the "values" field.
+func (m *FilterMutation) AppendValues(s []string) {
+	m.appendvalues = append(m.appendvalues, s...)
+}
+
+// AppendedValues returns the list of values that were appended to the "values" field in this mutation.
+func (m *FilterMutation) AppendedValues() ([]string, bool) {
+	if len(m.appendvalues) == 0 {
+		return nil, false
+	}
+	return m.appendvalues, true
+}
+
+// ResetValues resets all changes to the "values" field.
+func (m *FilterMutation) ResetValues() {
+	m.values = nil
+	m.appendvalues = nil
+}
+
+// AddUserFilterIDs adds the "user_filters" edge to the UserFilter entity by ids.
+func (m *FilterMutation) AddUserFilterIDs(ids ...int) {
+	if m.user_filters == nil {
+		m.user_filters = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.user_filters[ids[i]] = struct{}{}
+	}
+}
+
+// ClearUserFilters clears the "user_filters" edge to the UserFilter entity.
+func (m *FilterMutation) ClearUserFilters() {
+	m.cleareduser_filters = true
+}
+
+// UserFiltersCleared reports if the "user_filters" edge to the UserFilter entity was cleared.
+func (m *FilterMutation) UserFiltersCleared() bool {
+	return m.cleareduser_filters
+}
+
+// RemoveUserFilterIDs removes the "user_filters" edge to the UserFilter entity by IDs.
+func (m *FilterMutation) RemoveUserFilterIDs(ids ...int) {
+	if m.removeduser_filters == nil {
+		m.removeduser_filters = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.user_filters, ids[i])
+		m.removeduser_filters[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedUserFilters returns the removed IDs of the "user_filters" edge to the UserFilter entity.
+func (m *FilterMutation) RemovedUserFiltersIDs() (ids []int) {
+	for id := range m.removeduser_filters {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// UserFiltersIDs returns the "user_filters" edge IDs in the mutation.
+func (m *FilterMutation) UserFiltersIDs() (ids []int) {
+	for id := range m.user_filters {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetUserFilters resets all changes to the "user_filters" edge.
+func (m *FilterMutation) ResetUserFilters() {
+	m.user_filters = nil
+	m.cleareduser_filters = false
+	m.removeduser_filters = nil
+}
+
+// Where appends a list predicates to the FilterMutation builder.
+func (m *FilterMutation) Where(ps ...predicate.Filter) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the FilterMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *FilterMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Filter, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *FilterMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *FilterMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Filter).
+func (m *FilterMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *FilterMutation) Fields() []string {
+	fields := make([]string, 0, 4)
+	if m.name != nil {
+		fields = append(fields, filter.FieldName)
+	}
+	if m.hint != nil {
+		fields = append(fields, filter.FieldHint)
+	}
+	if m._type != nil {
+		fields = append(fields, filter.FieldType)
+	}
+	if m.values != nil {
+		fields = append(fields, filter.FieldValues)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *FilterMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case filter.FieldName:
+		return m.Name()
+	case filter.FieldHint:
+		return m.Hint()
+	case filter.FieldType:
+		return m.GetType()
+	case filter.FieldValues:
+		return m.Values()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *FilterMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case filter.FieldName:
+		return m.OldName(ctx)
+	case filter.FieldHint:
+		return m.OldHint(ctx)
+	case filter.FieldType:
+		return m.OldType(ctx)
+	case filter.FieldValues:
+		return m.OldValues(ctx)
+	}
+	return nil, fmt.Errorf("unknown Filter field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *FilterMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case filter.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case filter.FieldHint:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHint(v)
+		return nil
+	case filter.FieldType:
+		v, ok := value.(filter.Type)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetType(v)
+		return nil
+	case filter.FieldValues:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetValues(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Filter field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *FilterMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *FilterMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *FilterMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Filter numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *FilterMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(filter.FieldHint) {
+		fields = append(fields, filter.FieldHint)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *FilterMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *FilterMutation) ClearField(name string) error {
+	switch name {
+	case filter.FieldHint:
+		m.ClearHint()
+		return nil
+	}
+	return fmt.Errorf("unknown Filter nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *FilterMutation) ResetField(name string) error {
+	switch name {
+	case filter.FieldName:
+		m.ResetName()
+		return nil
+	case filter.FieldHint:
+		m.ResetHint()
+		return nil
+	case filter.FieldType:
+		m.ResetType()
+		return nil
+	case filter.FieldValues:
+		m.ResetValues()
+		return nil
+	}
+	return fmt.Errorf("unknown Filter field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *FilterMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.user_filters != nil {
+		edges = append(edges, filter.EdgeUserFilters)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *FilterMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case filter.EdgeUserFilters:
+		ids := make([]ent.Value, 0, len(m.user_filters))
+		for id := range m.user_filters {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *FilterMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.removeduser_filters != nil {
+		edges = append(edges, filter.EdgeUserFilters)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *FilterMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case filter.EdgeUserFilters:
+		ids := make([]ent.Value, 0, len(m.removeduser_filters))
+		for id := range m.removeduser_filters {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *FilterMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.cleareduser_filters {
+		edges = append(edges, filter.EdgeUserFilters)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *FilterMutation) EdgeCleared(name string) bool {
+	switch name {
+	case filter.EdgeUserFilters:
+		return m.cleareduser_filters
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *FilterMutation) ClearEdge(name string) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Filter unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *FilterMutation) ResetEdge(name string) error {
+	switch name {
+	case filter.EdgeUserFilters:
+		m.ResetUserFilters()
+		return nil
+	}
+	return fmt.Errorf("unknown Filter edge %s", name)
+}
+
 // UserMutation represents an operation that mutates the User nodes in the graph.
 type UserMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *int
-	first_name    *string
-	last_name     *string
-	birth_date    *time.Time
-	email         *string
-	password      *string
-	created_at    *time.Time
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*User, error)
-	predicates    []predicate.User
+	op                  Op
+	typ                 string
+	id                  *int
+	first_name          *string
+	last_name           *string
+	birth_date          *time.Time
+	email               *string
+	password            *string
+	created_at          *time.Time
+	clearedFields       map[string]struct{}
+	user_filters        map[int]struct{}
+	removeduser_filters map[int]struct{}
+	cleareduser_filters bool
+	done                bool
+	oldValue            func(context.Context) (*User, error)
+	predicates          []predicate.User
 }
 
 var _ ent.Mutation = (*UserMutation)(nil)
@@ -761,6 +1387,60 @@ func (m *UserMutation) ResetCreatedAt() {
 	m.created_at = nil
 }
 
+// AddUserFilterIDs adds the "user_filters" edge to the UserFilter entity by ids.
+func (m *UserMutation) AddUserFilterIDs(ids ...int) {
+	if m.user_filters == nil {
+		m.user_filters = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.user_filters[ids[i]] = struct{}{}
+	}
+}
+
+// ClearUserFilters clears the "user_filters" edge to the UserFilter entity.
+func (m *UserMutation) ClearUserFilters() {
+	m.cleareduser_filters = true
+}
+
+// UserFiltersCleared reports if the "user_filters" edge to the UserFilter entity was cleared.
+func (m *UserMutation) UserFiltersCleared() bool {
+	return m.cleareduser_filters
+}
+
+// RemoveUserFilterIDs removes the "user_filters" edge to the UserFilter entity by IDs.
+func (m *UserMutation) RemoveUserFilterIDs(ids ...int) {
+	if m.removeduser_filters == nil {
+		m.removeduser_filters = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.user_filters, ids[i])
+		m.removeduser_filters[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedUserFilters returns the removed IDs of the "user_filters" edge to the UserFilter entity.
+func (m *UserMutation) RemovedUserFiltersIDs() (ids []int) {
+	for id := range m.removeduser_filters {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// UserFiltersIDs returns the "user_filters" edge IDs in the mutation.
+func (m *UserMutation) UserFiltersIDs() (ids []int) {
+	for id := range m.user_filters {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetUserFilters resets all changes to the "user_filters" edge.
+func (m *UserMutation) ResetUserFilters() {
+	m.user_filters = nil
+	m.cleareduser_filters = false
+	m.removeduser_filters = nil
+}
+
 // Where appends a list predicates to the UserMutation builder.
 func (m *UserMutation) Where(ps ...predicate.User) {
 	m.predicates = append(m.predicates, ps...)
@@ -988,48 +1668,621 @@ func (m *UserMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *UserMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.user_filters != nil {
+		edges = append(edges, user.EdgeUserFilters)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *UserMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case user.EdgeUserFilters:
+		ids := make([]ent.Value, 0, len(m.user_filters))
+		for id := range m.user_filters {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *UserMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.removeduser_filters != nil {
+		edges = append(edges, user.EdgeUserFilters)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *UserMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case user.EdgeUserFilters:
+		ids := make([]ent.Value, 0, len(m.removeduser_filters))
+		for id := range m.removeduser_filters {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *UserMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.cleareduser_filters {
+		edges = append(edges, user.EdgeUserFilters)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *UserMutation) EdgeCleared(name string) bool {
+	switch name {
+	case user.EdgeUserFilters:
+		return m.cleareduser_filters
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *UserMutation) ClearEdge(name string) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown User unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *UserMutation) ResetEdge(name string) error {
+	switch name {
+	case user.EdgeUserFilters:
+		m.ResetUserFilters()
+		return nil
+	}
 	return fmt.Errorf("unknown User edge %s", name)
+}
+
+// UserFilterMutation represents an operation that mutates the UserFilter nodes in the graph.
+type UserFilterMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int
+	value         *string
+	clearedFields map[string]struct{}
+	user          *int
+	cleareduser   bool
+	filter        *int
+	clearedfilter bool
+	done          bool
+	oldValue      func(context.Context) (*UserFilter, error)
+	predicates    []predicate.UserFilter
+}
+
+var _ ent.Mutation = (*UserFilterMutation)(nil)
+
+// userfilterOption allows management of the mutation configuration using functional options.
+type userfilterOption func(*UserFilterMutation)
+
+// newUserFilterMutation creates new mutation for the UserFilter entity.
+func newUserFilterMutation(c config, op Op, opts ...userfilterOption) *UserFilterMutation {
+	m := &UserFilterMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeUserFilter,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withUserFilterID sets the ID field of the mutation.
+func withUserFilterID(id int) userfilterOption {
+	return func(m *UserFilterMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *UserFilter
+		)
+		m.oldValue = func(ctx context.Context) (*UserFilter, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().UserFilter.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withUserFilter sets the old UserFilter of the mutation.
+func withUserFilter(node *UserFilter) userfilterOption {
+	return func(m *UserFilterMutation) {
+		m.oldValue = func(context.Context) (*UserFilter, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m UserFilterMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m UserFilterMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *UserFilterMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *UserFilterMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().UserFilter.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetUserID sets the "user_id" field.
+func (m *UserFilterMutation) SetUserID(i int) {
+	m.user = &i
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *UserFilterMutation) UserID() (r int, exists bool) {
+	v := m.user
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the UserFilter entity.
+// If the UserFilter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserFilterMutation) OldUserID(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *UserFilterMutation) ResetUserID() {
+	m.user = nil
+}
+
+// SetFilterID sets the "filter_id" field.
+func (m *UserFilterMutation) SetFilterID(i int) {
+	m.filter = &i
+}
+
+// FilterID returns the value of the "filter_id" field in the mutation.
+func (m *UserFilterMutation) FilterID() (r int, exists bool) {
+	v := m.filter
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFilterID returns the old "filter_id" field's value of the UserFilter entity.
+// If the UserFilter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserFilterMutation) OldFilterID(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFilterID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFilterID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFilterID: %w", err)
+	}
+	return oldValue.FilterID, nil
+}
+
+// ResetFilterID resets all changes to the "filter_id" field.
+func (m *UserFilterMutation) ResetFilterID() {
+	m.filter = nil
+}
+
+// SetValue sets the "value" field.
+func (m *UserFilterMutation) SetValue(s string) {
+	m.value = &s
+}
+
+// Value returns the value of the "value" field in the mutation.
+func (m *UserFilterMutation) Value() (r string, exists bool) {
+	v := m.value
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldValue returns the old "value" field's value of the UserFilter entity.
+// If the UserFilter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserFilterMutation) OldValue(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldValue is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldValue requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldValue: %w", err)
+	}
+	return oldValue.Value, nil
+}
+
+// ResetValue resets all changes to the "value" field.
+func (m *UserFilterMutation) ResetValue() {
+	m.value = nil
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (m *UserFilterMutation) ClearUser() {
+	m.cleareduser = true
+	m.clearedFields[userfilter.FieldUserID] = struct{}{}
+}
+
+// UserCleared reports if the "user" edge to the User entity was cleared.
+func (m *UserFilterMutation) UserCleared() bool {
+	return m.cleareduser
+}
+
+// UserIDs returns the "user" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// UserID instead. It exists only for internal usage by the builders.
+func (m *UserFilterMutation) UserIDs() (ids []int) {
+	if id := m.user; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetUser resets all changes to the "user" edge.
+func (m *UserFilterMutation) ResetUser() {
+	m.user = nil
+	m.cleareduser = false
+}
+
+// ClearFilter clears the "filter" edge to the Filter entity.
+func (m *UserFilterMutation) ClearFilter() {
+	m.clearedfilter = true
+	m.clearedFields[userfilter.FieldFilterID] = struct{}{}
+}
+
+// FilterCleared reports if the "filter" edge to the Filter entity was cleared.
+func (m *UserFilterMutation) FilterCleared() bool {
+	return m.clearedfilter
+}
+
+// FilterIDs returns the "filter" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// FilterID instead. It exists only for internal usage by the builders.
+func (m *UserFilterMutation) FilterIDs() (ids []int) {
+	if id := m.filter; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetFilter resets all changes to the "filter" edge.
+func (m *UserFilterMutation) ResetFilter() {
+	m.filter = nil
+	m.clearedfilter = false
+}
+
+// Where appends a list predicates to the UserFilterMutation builder.
+func (m *UserFilterMutation) Where(ps ...predicate.UserFilter) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the UserFilterMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *UserFilterMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.UserFilter, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *UserFilterMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *UserFilterMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (UserFilter).
+func (m *UserFilterMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *UserFilterMutation) Fields() []string {
+	fields := make([]string, 0, 3)
+	if m.user != nil {
+		fields = append(fields, userfilter.FieldUserID)
+	}
+	if m.filter != nil {
+		fields = append(fields, userfilter.FieldFilterID)
+	}
+	if m.value != nil {
+		fields = append(fields, userfilter.FieldValue)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *UserFilterMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case userfilter.FieldUserID:
+		return m.UserID()
+	case userfilter.FieldFilterID:
+		return m.FilterID()
+	case userfilter.FieldValue:
+		return m.Value()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *UserFilterMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case userfilter.FieldUserID:
+		return m.OldUserID(ctx)
+	case userfilter.FieldFilterID:
+		return m.OldFilterID(ctx)
+	case userfilter.FieldValue:
+		return m.OldValue(ctx)
+	}
+	return nil, fmt.Errorf("unknown UserFilter field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *UserFilterMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case userfilter.FieldUserID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	case userfilter.FieldFilterID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFilterID(v)
+		return nil
+	case userfilter.FieldValue:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetValue(v)
+		return nil
+	}
+	return fmt.Errorf("unknown UserFilter field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *UserFilterMutation) AddedFields() []string {
+	var fields []string
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *UserFilterMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *UserFilterMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown UserFilter numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *UserFilterMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *UserFilterMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *UserFilterMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown UserFilter nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *UserFilterMutation) ResetField(name string) error {
+	switch name {
+	case userfilter.FieldUserID:
+		m.ResetUserID()
+		return nil
+	case userfilter.FieldFilterID:
+		m.ResetFilterID()
+		return nil
+	case userfilter.FieldValue:
+		m.ResetValue()
+		return nil
+	}
+	return fmt.Errorf("unknown UserFilter field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *UserFilterMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.user != nil {
+		edges = append(edges, userfilter.EdgeUser)
+	}
+	if m.filter != nil {
+		edges = append(edges, userfilter.EdgeFilter)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *UserFilterMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case userfilter.EdgeUser:
+		if id := m.user; id != nil {
+			return []ent.Value{*id}
+		}
+	case userfilter.EdgeFilter:
+		if id := m.filter; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *UserFilterMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *UserFilterMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *UserFilterMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.cleareduser {
+		edges = append(edges, userfilter.EdgeUser)
+	}
+	if m.clearedfilter {
+		edges = append(edges, userfilter.EdgeFilter)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *UserFilterMutation) EdgeCleared(name string) bool {
+	switch name {
+	case userfilter.EdgeUser:
+		return m.cleareduser
+	case userfilter.EdgeFilter:
+		return m.clearedfilter
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *UserFilterMutation) ClearEdge(name string) error {
+	switch name {
+	case userfilter.EdgeUser:
+		m.ClearUser()
+		return nil
+	case userfilter.EdgeFilter:
+		m.ClearFilter()
+		return nil
+	}
+	return fmt.Errorf("unknown UserFilter unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *UserFilterMutation) ResetEdge(name string) error {
+	switch name {
+	case userfilter.EdgeUser:
+		m.ResetUser()
+		return nil
+	case userfilter.EdgeFilter:
+		m.ResetFilter()
+		return nil
+	}
+	return fmt.Errorf("unknown UserFilter edge %s", name)
 }

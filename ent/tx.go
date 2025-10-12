@@ -14,8 +14,12 @@ type Tx struct {
 	config
 	// Attempt is the client for interacting with the Attempt builders.
 	Attempt *AttemptClient
+	// Filter is the client for interacting with the Filter builders.
+	Filter *FilterClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// UserFilter is the client for interacting with the UserFilter builders.
+	UserFilter *UserFilterClient
 
 	// lazily loaded.
 	client     *Client
@@ -148,7 +152,9 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.Attempt = NewAttemptClient(tx.config)
+	tx.Filter = NewFilterClient(tx.config)
 	tx.User = NewUserClient(tx.config)
+	tx.UserFilter = NewUserFilterClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

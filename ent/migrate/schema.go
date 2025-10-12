@@ -20,6 +20,20 @@ var (
 		Columns:    AttemptsColumns,
 		PrimaryKey: []*schema.Column{AttemptsColumns[0]},
 	}
+	// FiltersColumns holds the columns for the "filters" table.
+	FiltersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "hint", Type: field.TypeString, Nullable: true},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"DATE_RANGE", "NUMBER_RANGE", "STRING_RANGE"}},
+		{Name: "values", Type: field.TypeJSON},
+	}
+	// FiltersTable holds the schema information for the "filters" table.
+	FiltersTable = &schema.Table{
+		Name:       "filters",
+		Columns:    FiltersColumns,
+		PrimaryKey: []*schema.Column{FiltersColumns[0]},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -36,12 +50,43 @@ var (
 		Columns:    UsersColumns,
 		PrimaryKey: []*schema.Column{UsersColumns[0]},
 	}
+	// UserFiltersColumns holds the columns for the "user_filters" table.
+	UserFiltersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "value", Type: field.TypeString},
+		{Name: "filter_id", Type: field.TypeInt},
+		{Name: "user_id", Type: field.TypeInt},
+	}
+	// UserFiltersTable holds the schema information for the "user_filters" table.
+	UserFiltersTable = &schema.Table{
+		Name:       "user_filters",
+		Columns:    UserFiltersColumns,
+		PrimaryKey: []*schema.Column{UserFiltersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "user_filters_filters_user_filters",
+				Columns:    []*schema.Column{UserFiltersColumns[2]},
+				RefColumns: []*schema.Column{FiltersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "user_filters_users_user_filters",
+				Columns:    []*schema.Column{UserFiltersColumns[3]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		AttemptsTable,
+		FiltersTable,
 		UsersTable,
+		UserFiltersTable,
 	}
 )
 
 func init() {
+	UserFiltersTable.ForeignKeys[0].RefTable = FiltersTable
+	UserFiltersTable.ForeignKeys[1].RefTable = UsersTable
 }

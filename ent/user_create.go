@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/citizenkz/core/ent/user"
+	"github.com/citizenkz/core/ent/userfilter"
 )
 
 // UserCreate is the builder for creating a User entity.
@@ -70,6 +71,21 @@ func (_c *UserCreate) SetNillableCreatedAt(v *time.Time) *UserCreate {
 		_c.SetCreatedAt(*v)
 	}
 	return _c
+}
+
+// AddUserFilterIDs adds the "user_filters" edge to the UserFilter entity by IDs.
+func (_c *UserCreate) AddUserFilterIDs(ids ...int) *UserCreate {
+	_c.mutation.AddUserFilterIDs(ids...)
+	return _c
+}
+
+// AddUserFilters adds the "user_filters" edges to the UserFilter entity.
+func (_c *UserCreate) AddUserFilters(v ...*UserFilter) *UserCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddUserFilterIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -194,6 +210,22 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(user.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
+	}
+	if nodes := _c.mutation.UserFiltersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.UserFiltersTable,
+			Columns: []string{user.UserFiltersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userfilter.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

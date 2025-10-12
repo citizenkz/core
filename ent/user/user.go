@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 const (
@@ -25,8 +26,17 @@ const (
 	FieldPassword = "password"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
+	// EdgeUserFilters holds the string denoting the user_filters edge name in mutations.
+	EdgeUserFilters = "user_filters"
 	// Table holds the table name of the user in the database.
 	Table = "users"
+	// UserFiltersTable is the table that holds the user_filters relation/edge.
+	UserFiltersTable = "user_filters"
+	// UserFiltersInverseTable is the table name for the UserFilter entity.
+	// It exists in this package in order to avoid circular dependency with the "userfilter" package.
+	UserFiltersInverseTable = "user_filters"
+	// UserFiltersColumn is the table column denoting the user_filters relation/edge.
+	UserFiltersColumn = "user_id"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -97,4 +107,25 @@ func ByPassword(opts ...sql.OrderTermOption) OrderOption {
 // ByCreatedAt orders the results by the created_at field.
 func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
+}
+
+// ByUserFiltersCount orders the results by user_filters count.
+func ByUserFiltersCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newUserFiltersStep(), opts...)
+	}
+}
+
+// ByUserFilters orders the results by user_filters terms.
+func ByUserFilters(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newUserFiltersStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newUserFiltersStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(UserFiltersInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, UserFiltersTable, UserFiltersColumn),
+	)
 }

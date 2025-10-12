@@ -15,8 +15,11 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/citizenkz/core/ent/attempt"
+	"github.com/citizenkz/core/ent/filter"
 	"github.com/citizenkz/core/ent/user"
+	"github.com/citizenkz/core/ent/userfilter"
 )
 
 // Client is the client that holds all ent builders.
@@ -26,8 +29,12 @@ type Client struct {
 	Schema *migrate.Schema
 	// Attempt is the client for interacting with the Attempt builders.
 	Attempt *AttemptClient
+	// Filter is the client for interacting with the Filter builders.
+	Filter *FilterClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// UserFilter is the client for interacting with the UserFilter builders.
+	UserFilter *UserFilterClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -40,7 +47,9 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.Attempt = NewAttemptClient(c.config)
+	c.Filter = NewFilterClient(c.config)
 	c.User = NewUserClient(c.config)
+	c.UserFilter = NewUserFilterClient(c.config)
 }
 
 type (
@@ -131,10 +140,12 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:     ctx,
-		config:  cfg,
-		Attempt: NewAttemptClient(cfg),
-		User:    NewUserClient(cfg),
+		ctx:        ctx,
+		config:     cfg,
+		Attempt:    NewAttemptClient(cfg),
+		Filter:     NewFilterClient(cfg),
+		User:       NewUserClient(cfg),
+		UserFilter: NewUserFilterClient(cfg),
 	}, nil
 }
 
@@ -152,10 +163,12 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:     ctx,
-		config:  cfg,
-		Attempt: NewAttemptClient(cfg),
-		User:    NewUserClient(cfg),
+		ctx:        ctx,
+		config:     cfg,
+		Attempt:    NewAttemptClient(cfg),
+		Filter:     NewFilterClient(cfg),
+		User:       NewUserClient(cfg),
+		UserFilter: NewUserFilterClient(cfg),
 	}, nil
 }
 
@@ -185,14 +198,18 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	c.Attempt.Use(hooks...)
+	c.Filter.Use(hooks...)
 	c.User.Use(hooks...)
+	c.UserFilter.Use(hooks...)
 }
 
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	c.Attempt.Intercept(interceptors...)
+	c.Filter.Intercept(interceptors...)
 	c.User.Intercept(interceptors...)
+	c.UserFilter.Intercept(interceptors...)
 }
 
 // Mutate implements the ent.Mutator interface.
@@ -200,8 +217,12 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
 	case *AttemptMutation:
 		return c.Attempt.mutate(ctx, m)
+	case *FilterMutation:
+		return c.Filter.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
+	case *UserFilterMutation:
+		return c.UserFilter.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
 	}
@@ -340,6 +361,155 @@ func (c *AttemptClient) mutate(ctx context.Context, m *AttemptMutation) (Value, 
 	}
 }
 
+// FilterClient is a client for the Filter schema.
+type FilterClient struct {
+	config
+}
+
+// NewFilterClient returns a client for the Filter from the given config.
+func NewFilterClient(c config) *FilterClient {
+	return &FilterClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `filter.Hooks(f(g(h())))`.
+func (c *FilterClient) Use(hooks ...Hook) {
+	c.hooks.Filter = append(c.hooks.Filter, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `filter.Intercept(f(g(h())))`.
+func (c *FilterClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Filter = append(c.inters.Filter, interceptors...)
+}
+
+// Create returns a builder for creating a Filter entity.
+func (c *FilterClient) Create() *FilterCreate {
+	mutation := newFilterMutation(c.config, OpCreate)
+	return &FilterCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Filter entities.
+func (c *FilterClient) CreateBulk(builders ...*FilterCreate) *FilterCreateBulk {
+	return &FilterCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *FilterClient) MapCreateBulk(slice any, setFunc func(*FilterCreate, int)) *FilterCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &FilterCreateBulk{err: fmt.Errorf("calling to FilterClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*FilterCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &FilterCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Filter.
+func (c *FilterClient) Update() *FilterUpdate {
+	mutation := newFilterMutation(c.config, OpUpdate)
+	return &FilterUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *FilterClient) UpdateOne(_m *Filter) *FilterUpdateOne {
+	mutation := newFilterMutation(c.config, OpUpdateOne, withFilter(_m))
+	return &FilterUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *FilterClient) UpdateOneID(id int) *FilterUpdateOne {
+	mutation := newFilterMutation(c.config, OpUpdateOne, withFilterID(id))
+	return &FilterUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Filter.
+func (c *FilterClient) Delete() *FilterDelete {
+	mutation := newFilterMutation(c.config, OpDelete)
+	return &FilterDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *FilterClient) DeleteOne(_m *Filter) *FilterDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *FilterClient) DeleteOneID(id int) *FilterDeleteOne {
+	builder := c.Delete().Where(filter.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &FilterDeleteOne{builder}
+}
+
+// Query returns a query builder for Filter.
+func (c *FilterClient) Query() *FilterQuery {
+	return &FilterQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeFilter},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Filter entity by its id.
+func (c *FilterClient) Get(ctx context.Context, id int) (*Filter, error) {
+	return c.Query().Where(filter.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *FilterClient) GetX(ctx context.Context, id int) *Filter {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUserFilters queries the user_filters edge of a Filter.
+func (c *FilterClient) QueryUserFilters(_m *Filter) *UserFilterQuery {
+	query := (&UserFilterClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(filter.Table, filter.FieldID, id),
+			sqlgraph.To(userfilter.Table, userfilter.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, filter.UserFiltersTable, filter.UserFiltersColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *FilterClient) Hooks() []Hook {
+	return c.hooks.Filter
+}
+
+// Interceptors returns the client interceptors.
+func (c *FilterClient) Interceptors() []Interceptor {
+	return c.inters.Filter
+}
+
+func (c *FilterClient) mutate(ctx context.Context, m *FilterMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&FilterCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&FilterUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&FilterUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&FilterDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Filter mutation op: %q", m.Op())
+	}
+}
+
 // UserClient is a client for the User schema.
 type UserClient struct {
 	config
@@ -448,6 +618,22 @@ func (c *UserClient) GetX(ctx context.Context, id int) *User {
 	return obj
 }
 
+// QueryUserFilters queries the user_filters edge of a User.
+func (c *UserClient) QueryUserFilters(_m *User) *UserFilterQuery {
+	query := (&UserFilterClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(userfilter.Table, userfilter.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.UserFiltersTable, user.UserFiltersColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *UserClient) Hooks() []Hook {
 	return c.hooks.User
@@ -473,12 +659,177 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 	}
 }
 
+// UserFilterClient is a client for the UserFilter schema.
+type UserFilterClient struct {
+	config
+}
+
+// NewUserFilterClient returns a client for the UserFilter from the given config.
+func NewUserFilterClient(c config) *UserFilterClient {
+	return &UserFilterClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `userfilter.Hooks(f(g(h())))`.
+func (c *UserFilterClient) Use(hooks ...Hook) {
+	c.hooks.UserFilter = append(c.hooks.UserFilter, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `userfilter.Intercept(f(g(h())))`.
+func (c *UserFilterClient) Intercept(interceptors ...Interceptor) {
+	c.inters.UserFilter = append(c.inters.UserFilter, interceptors...)
+}
+
+// Create returns a builder for creating a UserFilter entity.
+func (c *UserFilterClient) Create() *UserFilterCreate {
+	mutation := newUserFilterMutation(c.config, OpCreate)
+	return &UserFilterCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of UserFilter entities.
+func (c *UserFilterClient) CreateBulk(builders ...*UserFilterCreate) *UserFilterCreateBulk {
+	return &UserFilterCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *UserFilterClient) MapCreateBulk(slice any, setFunc func(*UserFilterCreate, int)) *UserFilterCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &UserFilterCreateBulk{err: fmt.Errorf("calling to UserFilterClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*UserFilterCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &UserFilterCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for UserFilter.
+func (c *UserFilterClient) Update() *UserFilterUpdate {
+	mutation := newUserFilterMutation(c.config, OpUpdate)
+	return &UserFilterUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *UserFilterClient) UpdateOne(_m *UserFilter) *UserFilterUpdateOne {
+	mutation := newUserFilterMutation(c.config, OpUpdateOne, withUserFilter(_m))
+	return &UserFilterUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *UserFilterClient) UpdateOneID(id int) *UserFilterUpdateOne {
+	mutation := newUserFilterMutation(c.config, OpUpdateOne, withUserFilterID(id))
+	return &UserFilterUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for UserFilter.
+func (c *UserFilterClient) Delete() *UserFilterDelete {
+	mutation := newUserFilterMutation(c.config, OpDelete)
+	return &UserFilterDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *UserFilterClient) DeleteOne(_m *UserFilter) *UserFilterDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *UserFilterClient) DeleteOneID(id int) *UserFilterDeleteOne {
+	builder := c.Delete().Where(userfilter.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &UserFilterDeleteOne{builder}
+}
+
+// Query returns a query builder for UserFilter.
+func (c *UserFilterClient) Query() *UserFilterQuery {
+	return &UserFilterQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeUserFilter},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a UserFilter entity by its id.
+func (c *UserFilterClient) Get(ctx context.Context, id int) (*UserFilter, error) {
+	return c.Query().Where(userfilter.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *UserFilterClient) GetX(ctx context.Context, id int) *UserFilter {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a UserFilter.
+func (c *UserFilterClient) QueryUser(_m *UserFilter) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(userfilter.Table, userfilter.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, userfilter.UserTable, userfilter.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryFilter queries the filter edge of a UserFilter.
+func (c *UserFilterClient) QueryFilter(_m *UserFilter) *FilterQuery {
+	query := (&FilterClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(userfilter.Table, userfilter.FieldID, id),
+			sqlgraph.To(filter.Table, filter.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, userfilter.FilterTable, userfilter.FilterColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *UserFilterClient) Hooks() []Hook {
+	return c.hooks.UserFilter
+}
+
+// Interceptors returns the client interceptors.
+func (c *UserFilterClient) Interceptors() []Interceptor {
+	return c.inters.UserFilter
+}
+
+func (c *UserFilterClient) mutate(ctx context.Context, m *UserFilterMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&UserFilterCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&UserFilterUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&UserFilterUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&UserFilterDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown UserFilter mutation op: %q", m.Op())
+	}
+}
+
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Attempt, User []ent.Hook
+		Attempt, Filter, User, UserFilter []ent.Hook
 	}
 	inters struct {
-		Attempt, User []ent.Interceptor
+		Attempt, Filter, User, UserFilter []ent.Interceptor
 	}
 )
