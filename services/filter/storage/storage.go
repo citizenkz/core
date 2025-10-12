@@ -23,6 +23,7 @@ type Storage interface {
 	GetUserFilter(ctx context.Context, userID, filterID int) (*entity.UserFilter, error)
 	UpdateUserFilters(ctx context.Context, userID int, filterID int, value string) (*entity.UserFilter, error)
 	CreateUserFilters(ctx context.Context, userID int, filterID int, value string) (*entity.UserFilter, error)
+	DeleteFilter(ctx context.Context, filterID int) error
 }
 
 func New(log *slog.Logger, client *ent.Client) Storage {
@@ -138,4 +139,15 @@ func (s *storage) UpdateUserFilters(ctx context.Context, userID int, filterID in
 	}
 	
 	return userFilter, nil
+}
+
+func (s *storage) DeleteFilter(ctx context.Context, filterID int) error {
+	err := s.client.Filter.DeleteOneID(filterID).
+		Exec(ctx)
+	if err != nil {
+		s.log.Error("failed to delete filter", slog.String("error", err.Error()))
+		return err
+	}
+
+	return nil
 }
