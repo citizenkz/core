@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/citizenkz/core/ent/predicate"
 	"github.com/citizenkz/core/ent/user"
+	"github.com/citizenkz/core/ent/userfilter"
 )
 
 // UserUpdate is the builder for updating User entities.
@@ -118,9 +119,45 @@ func (_u *UserUpdate) SetNillableCreatedAt(v *time.Time) *UserUpdate {
 	return _u
 }
 
+// AddUserFilterIDs adds the "user_filters" edge to the UserFilter entity by IDs.
+func (_u *UserUpdate) AddUserFilterIDs(ids ...int) *UserUpdate {
+	_u.mutation.AddUserFilterIDs(ids...)
+	return _u
+}
+
+// AddUserFilters adds the "user_filters" edges to the UserFilter entity.
+func (_u *UserUpdate) AddUserFilters(v ...*UserFilter) *UserUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddUserFilterIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdate) Mutation() *UserMutation {
 	return _u.mutation
+}
+
+// ClearUserFilters clears all "user_filters" edges to the UserFilter entity.
+func (_u *UserUpdate) ClearUserFilters() *UserUpdate {
+	_u.mutation.ClearUserFilters()
+	return _u
+}
+
+// RemoveUserFilterIDs removes the "user_filters" edge to UserFilter entities by IDs.
+func (_u *UserUpdate) RemoveUserFilterIDs(ids ...int) *UserUpdate {
+	_u.mutation.RemoveUserFilterIDs(ids...)
+	return _u
+}
+
+// RemoveUserFilters removes "user_filters" edges to UserFilter entities.
+func (_u *UserUpdate) RemoveUserFilters(v ...*UserFilter) *UserUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveUserFilterIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -202,6 +239,51 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(user.FieldCreatedAt, field.TypeTime, value)
+	}
+	if _u.mutation.UserFiltersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.UserFiltersTable,
+			Columns: []string{user.UserFiltersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userfilter.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedUserFiltersIDs(); len(nodes) > 0 && !_u.mutation.UserFiltersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.UserFiltersTable,
+			Columns: []string{user.UserFiltersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userfilter.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.UserFiltersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.UserFiltersTable,
+			Columns: []string{user.UserFiltersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userfilter.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -313,9 +395,45 @@ func (_u *UserUpdateOne) SetNillableCreatedAt(v *time.Time) *UserUpdateOne {
 	return _u
 }
 
+// AddUserFilterIDs adds the "user_filters" edge to the UserFilter entity by IDs.
+func (_u *UserUpdateOne) AddUserFilterIDs(ids ...int) *UserUpdateOne {
+	_u.mutation.AddUserFilterIDs(ids...)
+	return _u
+}
+
+// AddUserFilters adds the "user_filters" edges to the UserFilter entity.
+func (_u *UserUpdateOne) AddUserFilters(v ...*UserFilter) *UserUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddUserFilterIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdateOne) Mutation() *UserMutation {
 	return _u.mutation
+}
+
+// ClearUserFilters clears all "user_filters" edges to the UserFilter entity.
+func (_u *UserUpdateOne) ClearUserFilters() *UserUpdateOne {
+	_u.mutation.ClearUserFilters()
+	return _u
+}
+
+// RemoveUserFilterIDs removes the "user_filters" edge to UserFilter entities by IDs.
+func (_u *UserUpdateOne) RemoveUserFilterIDs(ids ...int) *UserUpdateOne {
+	_u.mutation.RemoveUserFilterIDs(ids...)
+	return _u
+}
+
+// RemoveUserFilters removes "user_filters" edges to UserFilter entities.
+func (_u *UserUpdateOne) RemoveUserFilters(v ...*UserFilter) *UserUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveUserFilterIDs(ids...)
 }
 
 // Where appends a list predicates to the UserUpdate builder.
@@ -427,6 +545,51 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(user.FieldCreatedAt, field.TypeTime, value)
+	}
+	if _u.mutation.UserFiltersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.UserFiltersTable,
+			Columns: []string{user.UserFiltersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userfilter.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedUserFiltersIDs(); len(nodes) > 0 && !_u.mutation.UserFiltersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.UserFiltersTable,
+			Columns: []string{user.UserFiltersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userfilter.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.UserFiltersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.UserFiltersTable,
+			Columns: []string{user.UserFiltersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(userfilter.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &User{config: _u.config}
 	_spec.Assign = _node.assignValues

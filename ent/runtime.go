@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/citizenkz/core/ent/attempt"
+	"github.com/citizenkz/core/ent/filter"
 	"github.com/citizenkz/core/ent/schema"
 	"github.com/citizenkz/core/ent/user"
 	"github.com/google/uuid"
@@ -29,6 +30,12 @@ func init() {
 	attemptDescID := attemptFields[0].Descriptor()
 	// attempt.DefaultID holds the default value on creation for the id field.
 	attempt.DefaultID = attemptDescID.Default.(func() uuid.UUID)
+	filterFields := schema.Filter{}.Fields()
+	_ = filterFields
+	// filterDescName is the schema descriptor for name field.
+	filterDescName := filterFields[0].Descriptor()
+	// filter.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	filter.NameValidator = filterDescName.Validators[0].(func(string) error)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescFirstName is the schema descriptor for first_name field.

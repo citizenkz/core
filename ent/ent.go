@@ -13,7 +13,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/citizenkz/core/ent/attempt"
+	"github.com/citizenkz/core/ent/filter"
 	"github.com/citizenkz/core/ent/user"
+	"github.com/citizenkz/core/ent/userfilter"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -74,8 +76,10 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			attempt.Table: attempt.ValidColumn,
-			user.Table:    user.ValidColumn,
+			attempt.Table:    attempt.ValidColumn,
+			filter.Table:     filter.ValidColumn,
+			user.Table:       user.ValidColumn,
+			userfilter.Table: userfilter.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

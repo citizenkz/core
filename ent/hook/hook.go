@@ -21,6 +21,18 @@ func (f AttemptFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, err
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AttemptMutation", m)
 }
 
+// The FilterFunc type is an adapter to allow the use of ordinary
+// function as Filter mutator.
+type FilterFunc func(context.Context, *ent.FilterMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f FilterFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.FilterMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.FilterMutation", m)
+}
+
 // The UserFunc type is an adapter to allow the use of ordinary
 // function as User mutator.
 type UserFunc func(context.Context, *ent.UserMutation) (ent.Value, error)
@@ -31,6 +43,18 @@ func (f UserFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error)
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UserMutation", m)
+}
+
+// The UserFilterFunc type is an adapter to allow the use of ordinary
+// function as UserFilter mutator.
+type UserFilterFunc func(context.Context, *ent.UserFilterMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f UserFilterFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.UserFilterMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UserFilterMutation", m)
 }
 
 // Condition is a hook condition function.
