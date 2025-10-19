@@ -2,7 +2,7 @@ package entity
 
 type (
 	SaveFilersRequest struct {
-		UserID       int             `json:"user_id"`
+		Token        string          `json:"user_id"`
 		FilterValues []*FilterValues `json:"filter_values"`
 	}
 
