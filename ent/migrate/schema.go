@@ -35,6 +35,32 @@ var (
 		Columns:    BenefitsColumns,
 		PrimaryKey: []*schema.Column{BenefitsColumns[0]},
 	}
+	// BenefitCategoriesColumns holds the columns for the "benefit_categories" table.
+	BenefitCategoriesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "benefit_id", Type: field.TypeInt},
+		{Name: "category_id", Type: field.TypeInt},
+	}
+	// BenefitCategoriesTable holds the schema information for the "benefit_categories" table.
+	BenefitCategoriesTable = &schema.Table{
+		Name:       "benefit_categories",
+		Columns:    BenefitCategoriesColumns,
+		PrimaryKey: []*schema.Column{BenefitCategoriesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "benefit_categories_benefits_benefit_categories",
+				Columns:    []*schema.Column{BenefitCategoriesColumns[1]},
+				RefColumns: []*schema.Column{BenefitsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "benefit_categories_categories_benefit_categories",
+				Columns:    []*schema.Column{BenefitCategoriesColumns[2]},
+				RefColumns: []*schema.Column{CategoriesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+	}
 	// BenefitFiltersColumns holds the columns for the "benefit_filters" table.
 	BenefitFiltersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -63,6 +89,18 @@ var (
 				OnDelete:   schema.NoAction,
 			},
 		},
+	}
+	// CategoriesColumns holds the columns for the "categories" table.
+	CategoriesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+	}
+	// CategoriesTable holds the schema information for the "categories" table.
+	CategoriesTable = &schema.Table{
+		Name:       "categories",
+		Columns:    CategoriesColumns,
+		PrimaryKey: []*schema.Column{CategoriesColumns[0]},
 	}
 	// FiltersColumns holds the columns for the "filters" table.
 	FiltersColumns = []*schema.Column{
@@ -125,7 +163,9 @@ var (
 	Tables = []*schema.Table{
 		AttemptsTable,
 		BenefitsTable,
+		BenefitCategoriesTable,
 		BenefitFiltersTable,
+		CategoriesTable,
 		FiltersTable,
 		UsersTable,
 		UserFiltersTable,
@@ -133,6 +173,8 @@ var (
 )
 
 func init() {
+	BenefitCategoriesTable.ForeignKeys[0].RefTable = BenefitsTable
+	BenefitCategoriesTable.ForeignKeys[1].RefTable = CategoriesTable
 	BenefitFiltersTable.ForeignKeys[0].RefTable = BenefitsTable
 	BenefitFiltersTable.ForeignKeys[1].RefTable = FiltersTable
 	UserFiltersTable.ForeignKeys[0].RefTable = FiltersTable

@@ -13,7 +13,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/citizenkz/core/ent/attempt"
 	"github.com/citizenkz/core/ent/benefit"
+	"github.com/citizenkz/core/ent/benefitcategory"
 	"github.com/citizenkz/core/ent/benefitfilter"
+	"github.com/citizenkz/core/ent/category"
 	"github.com/citizenkz/core/ent/filter"
 	"github.com/citizenkz/core/ent/predicate"
 	"github.com/citizenkz/core/ent/user"
@@ -30,12 +32,14 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeAttempt       = "Attempt"
-	TypeBenefit       = "Benefit"
-	TypeBenefitFilter = "BenefitFilter"
-	TypeFilter        = "Filter"
-	TypeUser          = "User"
-	TypeUserFilter    = "UserFilter"
+	TypeAttempt         = "Attempt"
+	TypeBenefit         = "Benefit"
+	TypeBenefitCategory = "BenefitCategory"
+	TypeBenefitFilter   = "BenefitFilter"
+	TypeCategory        = "Category"
+	TypeFilter          = "Filter"
+	TypeUser            = "User"
+	TypeUserFilter      = "UserFilter"
 )
 
 // AttemptMutation represents an operation that mutates the Attempt nodes in the graph.
@@ -427,21 +431,24 @@ func (m *AttemptMutation) ResetEdge(name string) error {
 // BenefitMutation represents an operation that mutates the Benefit nodes in the graph.
 type BenefitMutation struct {
 	config
-	op                     Op
-	typ                    string
-	id                     *int
-	title                  *string
-	content                *string
-	bonus                  *string
-	video_url              *string
-	source_url             *string
-	clearedFields          map[string]struct{}
-	benefit_filters        map[int]struct{}
-	removedbenefit_filters map[int]struct{}
-	clearedbenefit_filters bool
-	done                   bool
-	oldValue               func(context.Context) (*Benefit, error)
-	predicates             []predicate.Benefit
+	op                        Op
+	typ                       string
+	id                        *int
+	title                     *string
+	content                   *string
+	bonus                     *string
+	video_url                 *string
+	source_url                *string
+	clearedFields             map[string]struct{}
+	benefit_filters           map[int]struct{}
+	removedbenefit_filters    map[int]struct{}
+	clearedbenefit_filters    bool
+	benefit_categories        map[int]struct{}
+	removedbenefit_categories map[int]struct{}
+	clearedbenefit_categories bool
+	done                      bool
+	oldValue                  func(context.Context) (*Benefit, error)
+	predicates                []predicate.Benefit
 }
 
 var _ ent.Mutation = (*BenefitMutation)(nil)
@@ -802,6 +809,60 @@ func (m *BenefitMutation) ResetBenefitFilters() {
 	m.removedbenefit_filters = nil
 }
 
+// AddBenefitCategoryIDs adds the "benefit_categories" edge to the BenefitCategory entity by ids.
+func (m *BenefitMutation) AddBenefitCategoryIDs(ids ...int) {
+	if m.benefit_categories == nil {
+		m.benefit_categories = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.benefit_categories[ids[i]] = struct{}{}
+	}
+}
+
+// ClearBenefitCategories clears the "benefit_categories" edge to the BenefitCategory entity.
+func (m *BenefitMutation) ClearBenefitCategories() {
+	m.clearedbenefit_categories = true
+}
+
+// BenefitCategoriesCleared reports if the "benefit_categories" edge to the BenefitCategory entity was cleared.
+func (m *BenefitMutation) BenefitCategoriesCleared() bool {
+	return m.clearedbenefit_categories
+}
+
+// RemoveBenefitCategoryIDs removes the "benefit_categories" edge to the BenefitCategory entity by IDs.
+func (m *BenefitMutation) RemoveBenefitCategoryIDs(ids ...int) {
+	if m.removedbenefit_categories == nil {
+		m.removedbenefit_categories = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.benefit_categories, ids[i])
+		m.removedbenefit_categories[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedBenefitCategories returns the removed IDs of the "benefit_categories" edge to the BenefitCategory entity.
+func (m *BenefitMutation) RemovedBenefitCategoriesIDs() (ids []int) {
+	for id := range m.removedbenefit_categories {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// BenefitCategoriesIDs returns the "benefit_categories" edge IDs in the mutation.
+func (m *BenefitMutation) BenefitCategoriesIDs() (ids []int) {
+	for id := range m.benefit_categories {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetBenefitCategories resets all changes to the "benefit_categories" edge.
+func (m *BenefitMutation) ResetBenefitCategories() {
+	m.benefit_categories = nil
+	m.clearedbenefit_categories = false
+	m.removedbenefit_categories = nil
+}
+
 // Where appends a list predicates to the BenefitMutation builder.
 func (m *BenefitMutation) Where(ps ...predicate.Benefit) {
 	m.predicates = append(m.predicates, ps...)
@@ -1018,9 +1079,12 @@ func (m *BenefitMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *BenefitMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.benefit_filters != nil {
 		edges = append(edges, benefit.EdgeBenefitFilters)
+	}
+	if m.benefit_categories != nil {
+		edges = append(edges, benefit.EdgeBenefitCategories)
 	}
 	return edges
 }
@@ -1035,15 +1099,24 @@ func (m *BenefitMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case benefit.EdgeBenefitCategories:
+		ids := make([]ent.Value, 0, len(m.benefit_categories))
+		for id := range m.benefit_categories {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *BenefitMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.removedbenefit_filters != nil {
 		edges = append(edges, benefit.EdgeBenefitFilters)
+	}
+	if m.removedbenefit_categories != nil {
+		edges = append(edges, benefit.EdgeBenefitCategories)
 	}
 	return edges
 }
@@ -1058,15 +1131,24 @@ func (m *BenefitMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case benefit.EdgeBenefitCategories:
+		ids := make([]ent.Value, 0, len(m.removedbenefit_categories))
+		for id := range m.removedbenefit_categories {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *BenefitMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.clearedbenefit_filters {
 		edges = append(edges, benefit.EdgeBenefitFilters)
+	}
+	if m.clearedbenefit_categories {
+		edges = append(edges, benefit.EdgeBenefitCategories)
 	}
 	return edges
 }
@@ -1077,6 +1159,8 @@ func (m *BenefitMutation) EdgeCleared(name string) bool {
 	switch name {
 	case benefit.EdgeBenefitFilters:
 		return m.clearedbenefit_filters
+	case benefit.EdgeBenefitCategories:
+		return m.clearedbenefit_categories
 	}
 	return false
 }
@@ -1096,8 +1180,494 @@ func (m *BenefitMutation) ResetEdge(name string) error {
 	case benefit.EdgeBenefitFilters:
 		m.ResetBenefitFilters()
 		return nil
+	case benefit.EdgeBenefitCategories:
+		m.ResetBenefitCategories()
+		return nil
 	}
 	return fmt.Errorf("unknown Benefit edge %s", name)
+}
+
+// BenefitCategoryMutation represents an operation that mutates the BenefitCategory nodes in the graph.
+type BenefitCategoryMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *int
+	clearedFields   map[string]struct{}
+	benefit         *int
+	clearedbenefit  bool
+	category        *int
+	clearedcategory bool
+	done            bool
+	oldValue        func(context.Context) (*BenefitCategory, error)
+	predicates      []predicate.BenefitCategory
+}
+
+var _ ent.Mutation = (*BenefitCategoryMutation)(nil)
+
+// benefitcategoryOption allows management of the mutation configuration using functional options.
+type benefitcategoryOption func(*BenefitCategoryMutation)
+
+// newBenefitCategoryMutation creates new mutation for the BenefitCategory entity.
+func newBenefitCategoryMutation(c config, op Op, opts ...benefitcategoryOption) *BenefitCategoryMutation {
+	m := &BenefitCategoryMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeBenefitCategory,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withBenefitCategoryID sets the ID field of the mutation.
+func withBenefitCategoryID(id int) benefitcategoryOption {
+	return func(m *BenefitCategoryMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *BenefitCategory
+		)
+		m.oldValue = func(ctx context.Context) (*BenefitCategory, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().BenefitCategory.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withBenefitCategory sets the old BenefitCategory of the mutation.
+func withBenefitCategory(node *BenefitCategory) benefitcategoryOption {
+	return func(m *BenefitCategoryMutation) {
+		m.oldValue = func(context.Context) (*BenefitCategory, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m BenefitCategoryMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m BenefitCategoryMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *BenefitCategoryMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *BenefitCategoryMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().BenefitCategory.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetBenefitID sets the "benefit_id" field.
+func (m *BenefitCategoryMutation) SetBenefitID(i int) {
+	m.benefit = &i
+}
+
+// BenefitID returns the value of the "benefit_id" field in the mutation.
+func (m *BenefitCategoryMutation) BenefitID() (r int, exists bool) {
+	v := m.benefit
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBenefitID returns the old "benefit_id" field's value of the BenefitCategory entity.
+// If the BenefitCategory object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BenefitCategoryMutation) OldBenefitID(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBenefitID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBenefitID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBenefitID: %w", err)
+	}
+	return oldValue.BenefitID, nil
+}
+
+// ResetBenefitID resets all changes to the "benefit_id" field.
+func (m *BenefitCategoryMutation) ResetBenefitID() {
+	m.benefit = nil
+}
+
+// SetCategoryID sets the "category_id" field.
+func (m *BenefitCategoryMutation) SetCategoryID(i int) {
+	m.category = &i
+}
+
+// CategoryID returns the value of the "category_id" field in the mutation.
+func (m *BenefitCategoryMutation) CategoryID() (r int, exists bool) {
+	v := m.category
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCategoryID returns the old "category_id" field's value of the BenefitCategory entity.
+// If the BenefitCategory object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BenefitCategoryMutation) OldCategoryID(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCategoryID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCategoryID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCategoryID: %w", err)
+	}
+	return oldValue.CategoryID, nil
+}
+
+// ResetCategoryID resets all changes to the "category_id" field.
+func (m *BenefitCategoryMutation) ResetCategoryID() {
+	m.category = nil
+}
+
+// ClearBenefit clears the "benefit" edge to the Benefit entity.
+func (m *BenefitCategoryMutation) ClearBenefit() {
+	m.clearedbenefit = true
+	m.clearedFields[benefitcategory.FieldBenefitID] = struct{}{}
+}
+
+// BenefitCleared reports if the "benefit" edge to the Benefit entity was cleared.
+func (m *BenefitCategoryMutation) BenefitCleared() bool {
+	return m.clearedbenefit
+}
+
+// BenefitIDs returns the "benefit" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// BenefitID instead. It exists only for internal usage by the builders.
+func (m *BenefitCategoryMutation) BenefitIDs() (ids []int) {
+	if id := m.benefit; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetBenefit resets all changes to the "benefit" edge.
+func (m *BenefitCategoryMutation) ResetBenefit() {
+	m.benefit = nil
+	m.clearedbenefit = false
+}
+
+// ClearCategory clears the "category" edge to the Category entity.
+func (m *BenefitCategoryMutation) ClearCategory() {
+	m.clearedcategory = true
+	m.clearedFields[benefitcategory.FieldCategoryID] = struct{}{}
+}
+
+// CategoryCleared reports if the "category" edge to the Category entity was cleared.
+func (m *BenefitCategoryMutation) CategoryCleared() bool {
+	return m.clearedcategory
+}
+
+// CategoryIDs returns the "category" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CategoryID instead. It exists only for internal usage by the builders.
+func (m *BenefitCategoryMutation) CategoryIDs() (ids []int) {
+	if id := m.category; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCategory resets all changes to the "category" edge.
+func (m *BenefitCategoryMutation) ResetCategory() {
+	m.category = nil
+	m.clearedcategory = false
+}
+
+// Where appends a list predicates to the BenefitCategoryMutation builder.
+func (m *BenefitCategoryMutation) Where(ps ...predicate.BenefitCategory) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the BenefitCategoryMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *BenefitCategoryMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.BenefitCategory, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *BenefitCategoryMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *BenefitCategoryMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (BenefitCategory).
+func (m *BenefitCategoryMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *BenefitCategoryMutation) Fields() []string {
+	fields := make([]string, 0, 2)
+	if m.benefit != nil {
+		fields = append(fields, benefitcategory.FieldBenefitID)
+	}
+	if m.category != nil {
+		fields = append(fields, benefitcategory.FieldCategoryID)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *BenefitCategoryMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case benefitcategory.FieldBenefitID:
+		return m.BenefitID()
+	case benefitcategory.FieldCategoryID:
+		return m.CategoryID()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *BenefitCategoryMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case benefitcategory.FieldBenefitID:
+		return m.OldBenefitID(ctx)
+	case benefitcategory.FieldCategoryID:
+		return m.OldCategoryID(ctx)
+	}
+	return nil, fmt.Errorf("unknown BenefitCategory field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BenefitCategoryMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case benefitcategory.FieldBenefitID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBenefitID(v)
+		return nil
+	case benefitcategory.FieldCategoryID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCategoryID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown BenefitCategory field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *BenefitCategoryMutation) AddedFields() []string {
+	var fields []string
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *BenefitCategoryMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BenefitCategoryMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown BenefitCategory numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *BenefitCategoryMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *BenefitCategoryMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *BenefitCategoryMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown BenefitCategory nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *BenefitCategoryMutation) ResetField(name string) error {
+	switch name {
+	case benefitcategory.FieldBenefitID:
+		m.ResetBenefitID()
+		return nil
+	case benefitcategory.FieldCategoryID:
+		m.ResetCategoryID()
+		return nil
+	}
+	return fmt.Errorf("unknown BenefitCategory field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *BenefitCategoryMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.benefit != nil {
+		edges = append(edges, benefitcategory.EdgeBenefit)
+	}
+	if m.category != nil {
+		edges = append(edges, benefitcategory.EdgeCategory)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *BenefitCategoryMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case benefitcategory.EdgeBenefit:
+		if id := m.benefit; id != nil {
+			return []ent.Value{*id}
+		}
+	case benefitcategory.EdgeCategory:
+		if id := m.category; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *BenefitCategoryMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *BenefitCategoryMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *BenefitCategoryMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedbenefit {
+		edges = append(edges, benefitcategory.EdgeBenefit)
+	}
+	if m.clearedcategory {
+		edges = append(edges, benefitcategory.EdgeCategory)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *BenefitCategoryMutation) EdgeCleared(name string) bool {
+	switch name {
+	case benefitcategory.EdgeBenefit:
+		return m.clearedbenefit
+	case benefitcategory.EdgeCategory:
+		return m.clearedcategory
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *BenefitCategoryMutation) ClearEdge(name string) error {
+	switch name {
+	case benefitcategory.EdgeBenefit:
+		m.ClearBenefit()
+		return nil
+	case benefitcategory.EdgeCategory:
+		m.ClearCategory()
+		return nil
+	}
+	return fmt.Errorf("unknown BenefitCategory unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *BenefitCategoryMutation) ResetEdge(name string) error {
+	switch name {
+	case benefitcategory.EdgeBenefit:
+		m.ResetBenefit()
+		return nil
+	case benefitcategory.EdgeCategory:
+		m.ResetCategory()
+		return nil
+	}
+	return fmt.Errorf("unknown BenefitCategory edge %s", name)
 }
 
 // BenefitFilterMutation represents an operation that mutates the BenefitFilter nodes in the graph.
@@ -1803,6 +2373,501 @@ func (m *BenefitFilterMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown BenefitFilter edge %s", name)
+}
+
+// CategoryMutation represents an operation that mutates the Category nodes in the graph.
+type CategoryMutation struct {
+	config
+	op                        Op
+	typ                       string
+	id                        *int
+	name                      *string
+	description               *string
+	clearedFields             map[string]struct{}
+	benefit_categories        map[int]struct{}
+	removedbenefit_categories map[int]struct{}
+	clearedbenefit_categories bool
+	done                      bool
+	oldValue                  func(context.Context) (*Category, error)
+	predicates                []predicate.Category
+}
+
+var _ ent.Mutation = (*CategoryMutation)(nil)
+
+// categoryOption allows management of the mutation configuration using functional options.
+type categoryOption func(*CategoryMutation)
+
+// newCategoryMutation creates new mutation for the Category entity.
+func newCategoryMutation(c config, op Op, opts ...categoryOption) *CategoryMutation {
+	m := &CategoryMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeCategory,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withCategoryID sets the ID field of the mutation.
+func withCategoryID(id int) categoryOption {
+	return func(m *CategoryMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Category
+		)
+		m.oldValue = func(ctx context.Context) (*Category, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Category.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withCategory sets the old Category of the mutation.
+func withCategory(node *Category) categoryOption {
+	return func(m *CategoryMutation) {
+		m.oldValue = func(context.Context) (*Category, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m CategoryMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m CategoryMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *CategoryMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *CategoryMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Category.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetName sets the "name" field.
+func (m *CategoryMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *CategoryMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the Category entity.
+// If the Category object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CategoryMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *CategoryMutation) ResetName() {
+	m.name = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *CategoryMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *CategoryMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the Category entity.
+// If the Category object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CategoryMutation) OldDescription(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ClearDescription clears the value of the "description" field.
+func (m *CategoryMutation) ClearDescription() {
+	m.description = nil
+	m.clearedFields[category.FieldDescription] = struct{}{}
+}
+
+// DescriptionCleared returns if the "description" field was cleared in this mutation.
+func (m *CategoryMutation) DescriptionCleared() bool {
+	_, ok := m.clearedFields[category.FieldDescription]
+	return ok
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *CategoryMutation) ResetDescription() {
+	m.description = nil
+	delete(m.clearedFields, category.FieldDescription)
+}
+
+// AddBenefitCategoryIDs adds the "benefit_categories" edge to the BenefitCategory entity by ids.
+func (m *CategoryMutation) AddBenefitCategoryIDs(ids ...int) {
+	if m.benefit_categories == nil {
+		m.benefit_categories = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.benefit_categories[ids[i]] = struct{}{}
+	}
+}
+
+// ClearBenefitCategories clears the "benefit_categories" edge to the BenefitCategory entity.
+func (m *CategoryMutation) ClearBenefitCategories() {
+	m.clearedbenefit_categories = true
+}
+
+// BenefitCategoriesCleared reports if the "benefit_categories" edge to the BenefitCategory entity was cleared.
+func (m *CategoryMutation) BenefitCategoriesCleared() bool {
+	return m.clearedbenefit_categories
+}
+
+// RemoveBenefitCategoryIDs removes the "benefit_categories" edge to the BenefitCategory entity by IDs.
+func (m *CategoryMutation) RemoveBenefitCategoryIDs(ids ...int) {
+	if m.removedbenefit_categories == nil {
+		m.removedbenefit_categories = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.benefit_categories, ids[i])
+		m.removedbenefit_categories[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedBenefitCategories returns the removed IDs of the "benefit_categories" edge to the BenefitCategory entity.
+func (m *CategoryMutation) RemovedBenefitCategoriesIDs() (ids []int) {
+	for id := range m.removedbenefit_categories {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// BenefitCategoriesIDs returns the "benefit_categories" edge IDs in the mutation.
+func (m *CategoryMutation) BenefitCategoriesIDs() (ids []int) {
+	for id := range m.benefit_categories {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetBenefitCategories resets all changes to the "benefit_categories" edge.
+func (m *CategoryMutation) ResetBenefitCategories() {
+	m.benefit_categories = nil
+	m.clearedbenefit_categories = false
+	m.removedbenefit_categories = nil
+}
+
+// Where appends a list predicates to the CategoryMutation builder.
+func (m *CategoryMutation) Where(ps ...predicate.Category) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the CategoryMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *CategoryMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Category, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *CategoryMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *CategoryMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Category).
+func (m *CategoryMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *CategoryMutation) Fields() []string {
+	fields := make([]string, 0, 2)
+	if m.name != nil {
+		fields = append(fields, category.FieldName)
+	}
+	if m.description != nil {
+		fields = append(fields, category.FieldDescription)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *CategoryMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case category.FieldName:
+		return m.Name()
+	case category.FieldDescription:
+		return m.Description()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *CategoryMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case category.FieldName:
+		return m.OldName(ctx)
+	case category.FieldDescription:
+		return m.OldDescription(ctx)
+	}
+	return nil, fmt.Errorf("unknown Category field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *CategoryMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case category.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case category.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Category field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *CategoryMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *CategoryMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *CategoryMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Category numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *CategoryMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(category.FieldDescription) {
+		fields = append(fields, category.FieldDescription)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *CategoryMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *CategoryMutation) ClearField(name string) error {
+	switch name {
+	case category.FieldDescription:
+		m.ClearDescription()
+		return nil
+	}
+	return fmt.Errorf("unknown Category nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *CategoryMutation) ResetField(name string) error {
+	switch name {
+	case category.FieldName:
+		m.ResetName()
+		return nil
+	case category.FieldDescription:
+		m.ResetDescription()
+		return nil
+	}
+	return fmt.Errorf("unknown Category field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *CategoryMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.benefit_categories != nil {
+		edges = append(edges, category.EdgeBenefitCategories)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *CategoryMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case category.EdgeBenefitCategories:
+		ids := make([]ent.Value, 0, len(m.benefit_categories))
+		for id := range m.benefit_categories {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *CategoryMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.removedbenefit_categories != nil {
+		edges = append(edges, category.EdgeBenefitCategories)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *CategoryMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case category.EdgeBenefitCategories:
+		ids := make([]ent.Value, 0, len(m.removedbenefit_categories))
+		for id := range m.removedbenefit_categories {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *CategoryMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedbenefit_categories {
+		edges = append(edges, category.EdgeBenefitCategories)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *CategoryMutation) EdgeCleared(name string) bool {
+	switch name {
+	case category.EdgeBenefitCategories:
+		return m.clearedbenefit_categories
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *CategoryMutation) ClearEdge(name string) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Category unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *CategoryMutation) ResetEdge(name string) error {
+	switch name {
+	case category.EdgeBenefitCategories:
+		m.ResetBenefitCategories()
+		return nil
+	}
+	return fmt.Errorf("unknown Category edge %s", name)
 }
 
 // FilterMutation represents an operation that mutates the Filter nodes in the graph.

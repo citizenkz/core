@@ -30,5 +30,6 @@ func (Benefit) Fields() []ent.Field {
 func (Benefit) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("benefit_filters", BenefitFilter.Type),
+		edge.To("benefit_categories", BenefitCategory.Type),
 	}
 }
