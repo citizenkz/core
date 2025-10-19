@@ -17,6 +17,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/citizenkz/core/ent/attempt"
+	"github.com/citizenkz/core/ent/benefit"
+	"github.com/citizenkz/core/ent/benefitfilter"
 	"github.com/citizenkz/core/ent/filter"
 	"github.com/citizenkz/core/ent/user"
 	"github.com/citizenkz/core/ent/userfilter"
@@ -29,6 +31,10 @@ type Client struct {
 	Schema *migrate.Schema
 	// Attempt is the client for interacting with the Attempt builders.
 	Attempt *AttemptClient
+	// Benefit is the client for interacting with the Benefit builders.
+	Benefit *BenefitClient
+	// BenefitFilter is the client for interacting with the BenefitFilter builders.
+	BenefitFilter *BenefitFilterClient
 	// Filter is the client for interacting with the Filter builders.
 	Filter *FilterClient
 	// User is the client for interacting with the User builders.
@@ -47,6 +53,8 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.Attempt = NewAttemptClient(c.config)
+	c.Benefit = NewBenefitClient(c.config)
+	c.BenefitFilter = NewBenefitFilterClient(c.config)
 	c.Filter = NewFilterClient(c.config)
 	c.User = NewUserClient(c.config)
 	c.UserFilter = NewUserFilterClient(c.config)
@@ -140,12 +148,14 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:        ctx,
-		config:     cfg,
-		Attempt:    NewAttemptClient(cfg),
-		Filter:     NewFilterClient(cfg),
-		User:       NewUserClient(cfg),
-		UserFilter: NewUserFilterClient(cfg),
+		ctx:           ctx,
+		config:        cfg,
+		Attempt:       NewAttemptClient(cfg),
+		Benefit:       NewBenefitClient(cfg),
+		BenefitFilter: NewBenefitFilterClient(cfg),
+		Filter:        NewFilterClient(cfg),
+		User:          NewUserClient(cfg),
+		UserFilter:    NewUserFilterClient(cfg),
 	}, nil
 }
 
@@ -163,12 +173,14 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:        ctx,
-		config:     cfg,
-		Attempt:    NewAttemptClient(cfg),
-		Filter:     NewFilterClient(cfg),
-		User:       NewUserClient(cfg),
-		UserFilter: NewUserFilterClient(cfg),
+		ctx:           ctx,
+		config:        cfg,
+		Attempt:       NewAttemptClient(cfg),
+		Benefit:       NewBenefitClient(cfg),
+		BenefitFilter: NewBenefitFilterClient(cfg),
+		Filter:        NewFilterClient(cfg),
+		User:          NewUserClient(cfg),
+		UserFilter:    NewUserFilterClient(cfg),
 	}, nil
 }
 
@@ -197,19 +209,21 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
-	c.Attempt.Use(hooks...)
-	c.Filter.Use(hooks...)
-	c.User.Use(hooks...)
-	c.UserFilter.Use(hooks...)
+	for _, n := range []interface{ Use(...Hook) }{
+		c.Attempt, c.Benefit, c.BenefitFilter, c.Filter, c.User, c.UserFilter,
+	} {
+		n.Use(hooks...)
+	}
 }
 
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
-	c.Attempt.Intercept(interceptors...)
-	c.Filter.Intercept(interceptors...)
-	c.User.Intercept(interceptors...)
-	c.UserFilter.Intercept(interceptors...)
+	for _, n := range []interface{ Intercept(...Interceptor) }{
+		c.Attempt, c.Benefit, c.BenefitFilter, c.Filter, c.User, c.UserFilter,
+	} {
+		n.Intercept(interceptors...)
+	}
 }
 
 // Mutate implements the ent.Mutator interface.
@@ -217,6 +231,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
 	case *AttemptMutation:
 		return c.Attempt.mutate(ctx, m)
+	case *BenefitMutation:
+		return c.Benefit.mutate(ctx, m)
+	case *BenefitFilterMutation:
+		return c.BenefitFilter.mutate(ctx, m)
 	case *FilterMutation:
 		return c.Filter.mutate(ctx, m)
 	case *UserMutation:
@@ -361,6 +379,320 @@ func (c *AttemptClient) mutate(ctx context.Context, m *AttemptMutation) (Value, 
 	}
 }
 
+// BenefitClient is a client for the Benefit schema.
+type BenefitClient struct {
+	config
+}
+
+// NewBenefitClient returns a client for the Benefit from the given config.
+func NewBenefitClient(c config) *BenefitClient {
+	return &BenefitClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `benefit.Hooks(f(g(h())))`.
+func (c *BenefitClient) Use(hooks ...Hook) {
+	c.hooks.Benefit = append(c.hooks.Benefit, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `benefit.Intercept(f(g(h())))`.
+func (c *BenefitClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Benefit = append(c.inters.Benefit, interceptors...)
+}
+
+// Create returns a builder for creating a Benefit entity.
+func (c *BenefitClient) Create() *BenefitCreate {
+	mutation := newBenefitMutation(c.config, OpCreate)
+	return &BenefitCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Benefit entities.
+func (c *BenefitClient) CreateBulk(builders ...*BenefitCreate) *BenefitCreateBulk {
+	return &BenefitCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BenefitClient) MapCreateBulk(slice any, setFunc func(*BenefitCreate, int)) *BenefitCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BenefitCreateBulk{err: fmt.Errorf("calling to BenefitClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BenefitCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BenefitCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Benefit.
+func (c *BenefitClient) Update() *BenefitUpdate {
+	mutation := newBenefitMutation(c.config, OpUpdate)
+	return &BenefitUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BenefitClient) UpdateOne(_m *Benefit) *BenefitUpdateOne {
+	mutation := newBenefitMutation(c.config, OpUpdateOne, withBenefit(_m))
+	return &BenefitUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BenefitClient) UpdateOneID(id int) *BenefitUpdateOne {
+	mutation := newBenefitMutation(c.config, OpUpdateOne, withBenefitID(id))
+	return &BenefitUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Benefit.
+func (c *BenefitClient) Delete() *BenefitDelete {
+	mutation := newBenefitMutation(c.config, OpDelete)
+	return &BenefitDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BenefitClient) DeleteOne(_m *Benefit) *BenefitDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BenefitClient) DeleteOneID(id int) *BenefitDeleteOne {
+	builder := c.Delete().Where(benefit.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BenefitDeleteOne{builder}
+}
+
+// Query returns a query builder for Benefit.
+func (c *BenefitClient) Query() *BenefitQuery {
+	return &BenefitQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBenefit},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Benefit entity by its id.
+func (c *BenefitClient) Get(ctx context.Context, id int) (*Benefit, error) {
+	return c.Query().Where(benefit.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BenefitClient) GetX(ctx context.Context, id int) *Benefit {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryBenefitFilters queries the benefit_filters edge of a Benefit.
+func (c *BenefitClient) QueryBenefitFilters(_m *Benefit) *BenefitFilterQuery {
+	query := (&BenefitFilterClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(benefit.Table, benefit.FieldID, id),
+			sqlgraph.To(benefitfilter.Table, benefitfilter.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, benefit.BenefitFiltersTable, benefit.BenefitFiltersColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *BenefitClient) Hooks() []Hook {
+	return c.hooks.Benefit
+}
+
+// Interceptors returns the client interceptors.
+func (c *BenefitClient) Interceptors() []Interceptor {
+	return c.inters.Benefit
+}
+
+func (c *BenefitClient) mutate(ctx context.Context, m *BenefitMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BenefitCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BenefitUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BenefitUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BenefitDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Benefit mutation op: %q", m.Op())
+	}
+}
+
+// BenefitFilterClient is a client for the BenefitFilter schema.
+type BenefitFilterClient struct {
+	config
+}
+
+// NewBenefitFilterClient returns a client for the BenefitFilter from the given config.
+func NewBenefitFilterClient(c config) *BenefitFilterClient {
+	return &BenefitFilterClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `benefitfilter.Hooks(f(g(h())))`.
+func (c *BenefitFilterClient) Use(hooks ...Hook) {
+	c.hooks.BenefitFilter = append(c.hooks.BenefitFilter, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `benefitfilter.Intercept(f(g(h())))`.
+func (c *BenefitFilterClient) Intercept(interceptors ...Interceptor) {
+	c.inters.BenefitFilter = append(c.inters.BenefitFilter, interceptors...)
+}
+
+// Create returns a builder for creating a BenefitFilter entity.
+func (c *BenefitFilterClient) Create() *BenefitFilterCreate {
+	mutation := newBenefitFilterMutation(c.config, OpCreate)
+	return &BenefitFilterCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of BenefitFilter entities.
+func (c *BenefitFilterClient) CreateBulk(builders ...*BenefitFilterCreate) *BenefitFilterCreateBulk {
+	return &BenefitFilterCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BenefitFilterClient) MapCreateBulk(slice any, setFunc func(*BenefitFilterCreate, int)) *BenefitFilterCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BenefitFilterCreateBulk{err: fmt.Errorf("calling to BenefitFilterClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BenefitFilterCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BenefitFilterCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for BenefitFilter.
+func (c *BenefitFilterClient) Update() *BenefitFilterUpdate {
+	mutation := newBenefitFilterMutation(c.config, OpUpdate)
+	return &BenefitFilterUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BenefitFilterClient) UpdateOne(_m *BenefitFilter) *BenefitFilterUpdateOne {
+	mutation := newBenefitFilterMutation(c.config, OpUpdateOne, withBenefitFilter(_m))
+	return &BenefitFilterUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BenefitFilterClient) UpdateOneID(id int) *BenefitFilterUpdateOne {
+	mutation := newBenefitFilterMutation(c.config, OpUpdateOne, withBenefitFilterID(id))
+	return &BenefitFilterUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for BenefitFilter.
+func (c *BenefitFilterClient) Delete() *BenefitFilterDelete {
+	mutation := newBenefitFilterMutation(c.config, OpDelete)
+	return &BenefitFilterDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BenefitFilterClient) DeleteOne(_m *BenefitFilter) *BenefitFilterDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BenefitFilterClient) DeleteOneID(id int) *BenefitFilterDeleteOne {
+	builder := c.Delete().Where(benefitfilter.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BenefitFilterDeleteOne{builder}
+}
+
+// Query returns a query builder for BenefitFilter.
+func (c *BenefitFilterClient) Query() *BenefitFilterQuery {
+	return &BenefitFilterQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBenefitFilter},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a BenefitFilter entity by its id.
+func (c *BenefitFilterClient) Get(ctx context.Context, id int) (*BenefitFilter, error) {
+	return c.Query().Where(benefitfilter.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BenefitFilterClient) GetX(ctx context.Context, id int) *BenefitFilter {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryBenefit queries the benefit edge of a BenefitFilter.
+func (c *BenefitFilterClient) QueryBenefit(_m *BenefitFilter) *BenefitQuery {
+	query := (&BenefitClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(benefitfilter.Table, benefitfilter.FieldID, id),
+			sqlgraph.To(benefit.Table, benefit.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, benefitfilter.BenefitTable, benefitfilter.BenefitColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryFilter queries the filter edge of a BenefitFilter.
+func (c *BenefitFilterClient) QueryFilter(_m *BenefitFilter) *FilterQuery {
+	query := (&FilterClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(benefitfilter.Table, benefitfilter.FieldID, id),
+			sqlgraph.To(filter.Table, filter.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, benefitfilter.FilterTable, benefitfilter.FilterColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *BenefitFilterClient) Hooks() []Hook {
+	return c.hooks.BenefitFilter
+}
+
+// Interceptors returns the client interceptors.
+func (c *BenefitFilterClient) Interceptors() []Interceptor {
+	return c.inters.BenefitFilter
+}
+
+func (c *BenefitFilterClient) mutate(ctx context.Context, m *BenefitFilterMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BenefitFilterCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BenefitFilterUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BenefitFilterUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BenefitFilterDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown BenefitFilter mutation op: %q", m.Op())
+	}
+}
+
 // FilterClient is a client for the Filter schema.
 type FilterClient struct {
 	config
@@ -478,6 +810,22 @@ func (c *FilterClient) QueryUserFilters(_m *Filter) *UserFilterQuery {
 			sqlgraph.From(filter.Table, filter.FieldID, id),
 			sqlgraph.To(userfilter.Table, userfilter.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, filter.UserFiltersTable, filter.UserFiltersColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBenefitFilters queries the benefit_filters edge of a Filter.
+func (c *FilterClient) QueryBenefitFilters(_m *Filter) *BenefitFilterQuery {
+	query := (&BenefitFilterClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(filter.Table, filter.FieldID, id),
+			sqlgraph.To(benefitfilter.Table, benefitfilter.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, filter.BenefitFiltersTable, filter.BenefitFiltersColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -827,9 +1175,9 @@ func (c *UserFilterClient) mutate(ctx context.Context, m *UserFilterMutation) (V
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Attempt, Filter, User, UserFilter []ent.Hook
+		Attempt, Benefit, BenefitFilter, Filter, User, UserFilter []ent.Hook
 	}
 	inters struct {
-		Attempt, Filter, User, UserFilter []ent.Interceptor
+		Attempt, Benefit, BenefitFilter, Filter, User, UserFilter []ent.Interceptor
 	}
 )

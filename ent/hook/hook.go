@@ -21,6 +21,30 @@ func (f AttemptFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, err
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AttemptMutation", m)
 }
 
+// The BenefitFunc type is an adapter to allow the use of ordinary
+// function as Benefit mutator.
+type BenefitFunc func(context.Context, *ent.BenefitMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BenefitFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.BenefitMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.BenefitMutation", m)
+}
+
+// The BenefitFilterFunc type is an adapter to allow the use of ordinary
+// function as BenefitFilter mutator.
+type BenefitFilterFunc func(context.Context, *ent.BenefitFilterMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BenefitFilterFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.BenefitFilterMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.BenefitFilterMutation", m)
+}
+
 // The FilterFunc type is an adapter to allow the use of ordinary
 // function as Filter mutator.
 type FilterFunc func(context.Context, *ent.FilterMutation) (ent.Value, error)

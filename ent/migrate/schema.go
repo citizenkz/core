@@ -20,6 +20,50 @@ var (
 		Columns:    AttemptsColumns,
 		PrimaryKey: []*schema.Column{AttemptsColumns[0]},
 	}
+	// BenefitsColumns holds the columns for the "benefits" table.
+	BenefitsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "title", Type: field.TypeString},
+		{Name: "content", Type: field.TypeString, Size: 2147483647},
+		{Name: "bonus", Type: field.TypeString},
+		{Name: "video_url", Type: field.TypeString, Nullable: true},
+		{Name: "source_url", Type: field.TypeString, Nullable: true},
+	}
+	// BenefitsTable holds the schema information for the "benefits" table.
+	BenefitsTable = &schema.Table{
+		Name:       "benefits",
+		Columns:    BenefitsColumns,
+		PrimaryKey: []*schema.Column{BenefitsColumns[0]},
+	}
+	// BenefitFiltersColumns holds the columns for the "benefit_filters" table.
+	BenefitFiltersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "value", Type: field.TypeString, Nullable: true},
+		{Name: "from", Type: field.TypeString, Nullable: true},
+		{Name: "to", Type: field.TypeString, Nullable: true},
+		{Name: "benefit_id", Type: field.TypeInt},
+		{Name: "filter_id", Type: field.TypeInt},
+	}
+	// BenefitFiltersTable holds the schema information for the "benefit_filters" table.
+	BenefitFiltersTable = &schema.Table{
+		Name:       "benefit_filters",
+		Columns:    BenefitFiltersColumns,
+		PrimaryKey: []*schema.Column{BenefitFiltersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "benefit_filters_benefits_benefit_filters",
+				Columns:    []*schema.Column{BenefitFiltersColumns[4]},
+				RefColumns: []*schema.Column{BenefitsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "benefit_filters_filters_benefit_filters",
+				Columns:    []*schema.Column{BenefitFiltersColumns[5]},
+				RefColumns: []*schema.Column{FiltersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+	}
 	// FiltersColumns holds the columns for the "filters" table.
 	FiltersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -80,6 +124,8 @@ var (
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		AttemptsTable,
+		BenefitsTable,
+		BenefitFiltersTable,
 		FiltersTable,
 		UsersTable,
 		UserFiltersTable,
@@ -87,6 +133,8 @@ var (
 )
 
 func init() {
+	BenefitFiltersTable.ForeignKeys[0].RefTable = BenefitsTable
+	BenefitFiltersTable.ForeignKeys[1].RefTable = FiltersTable
 	UserFiltersTable.ForeignKeys[0].RefTable = FiltersTable
 	UserFiltersTable.ForeignKeys[1].RefTable = UsersTable
 }

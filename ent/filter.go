@@ -35,9 +35,11 @@ type Filter struct {
 type FilterEdges struct {
 	// UserFilters holds the value of the user_filters edge.
 	UserFilters []*UserFilter `json:"user_filters,omitempty"`
+	// BenefitFilters holds the value of the benefit_filters edge.
+	BenefitFilters []*BenefitFilter `json:"benefit_filters,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // UserFiltersOrErr returns the UserFilters value or an error if the edge
@@ -47,6 +49,15 @@ func (e FilterEdges) UserFiltersOrErr() ([]*UserFilter, error) {
 		return e.UserFilters, nil
 	}
 	return nil, &NotLoadedError{edge: "user_filters"}
+}
+
+// BenefitFiltersOrErr returns the BenefitFilters value or an error if the edge
+// was not loaded in eager-loading.
+func (e FilterEdges) BenefitFiltersOrErr() ([]*BenefitFilter, error) {
+	if e.loadedTypes[1] {
+		return e.BenefitFilters, nil
+	}
+	return nil, &NotLoadedError{edge: "benefit_filters"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -124,6 +135,11 @@ func (_m *Filter) Value(name string) (ent.Value, error) {
 // QueryUserFilters queries the "user_filters" edge of the Filter entity.
 func (_m *Filter) QueryUserFilters() *UserFilterQuery {
 	return NewFilterClient(_m.config).QueryUserFilters(_m)
+}
+
+// QueryBenefitFilters queries the "benefit_filters" edge of the Filter entity.
+func (_m *Filter) QueryBenefitFilters() *BenefitFilterQuery {
+	return NewFilterClient(_m.config).QueryBenefitFilters(_m)
 }
 
 // Update returns a builder for updating this Filter.

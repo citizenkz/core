@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
+	"github.com/citizenkz/core/ent/benefitfilter"
 	"github.com/citizenkz/core/ent/filter"
 	"github.com/citizenkz/core/ent/predicate"
 	"github.com/citizenkz/core/ent/userfilter"
@@ -104,6 +105,21 @@ func (_u *FilterUpdate) AddUserFilters(v ...*UserFilter) *FilterUpdate {
 	return _u.AddUserFilterIDs(ids...)
 }
 
+// AddBenefitFilterIDs adds the "benefit_filters" edge to the BenefitFilter entity by IDs.
+func (_u *FilterUpdate) AddBenefitFilterIDs(ids ...int) *FilterUpdate {
+	_u.mutation.AddBenefitFilterIDs(ids...)
+	return _u
+}
+
+// AddBenefitFilters adds the "benefit_filters" edges to the BenefitFilter entity.
+func (_u *FilterUpdate) AddBenefitFilters(v ...*BenefitFilter) *FilterUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddBenefitFilterIDs(ids...)
+}
+
 // Mutation returns the FilterMutation object of the builder.
 func (_u *FilterUpdate) Mutation() *FilterMutation {
 	return _u.mutation
@@ -128,6 +144,27 @@ func (_u *FilterUpdate) RemoveUserFilters(v ...*UserFilter) *FilterUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveUserFilterIDs(ids...)
+}
+
+// ClearBenefitFilters clears all "benefit_filters" edges to the BenefitFilter entity.
+func (_u *FilterUpdate) ClearBenefitFilters() *FilterUpdate {
+	_u.mutation.ClearBenefitFilters()
+	return _u
+}
+
+// RemoveBenefitFilterIDs removes the "benefit_filters" edge to BenefitFilter entities by IDs.
+func (_u *FilterUpdate) RemoveBenefitFilterIDs(ids ...int) *FilterUpdate {
+	_u.mutation.RemoveBenefitFilterIDs(ids...)
+	return _u
+}
+
+// RemoveBenefitFilters removes "benefit_filters" edges to BenefitFilter entities.
+func (_u *FilterUpdate) RemoveBenefitFilters(v ...*BenefitFilter) *FilterUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveBenefitFilterIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -249,6 +286,51 @@ func (_u *FilterUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.BenefitFiltersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   filter.BenefitFiltersTable,
+			Columns: []string{filter.BenefitFiltersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(benefitfilter.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedBenefitFiltersIDs(); len(nodes) > 0 && !_u.mutation.BenefitFiltersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   filter.BenefitFiltersTable,
+			Columns: []string{filter.BenefitFiltersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(benefitfilter.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.BenefitFiltersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   filter.BenefitFiltersTable,
+			Columns: []string{filter.BenefitFiltersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(benefitfilter.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{filter.Label}
@@ -344,6 +426,21 @@ func (_u *FilterUpdateOne) AddUserFilters(v ...*UserFilter) *FilterUpdateOne {
 	return _u.AddUserFilterIDs(ids...)
 }
 
+// AddBenefitFilterIDs adds the "benefit_filters" edge to the BenefitFilter entity by IDs.
+func (_u *FilterUpdateOne) AddBenefitFilterIDs(ids ...int) *FilterUpdateOne {
+	_u.mutation.AddBenefitFilterIDs(ids...)
+	return _u
+}
+
+// AddBenefitFilters adds the "benefit_filters" edges to the BenefitFilter entity.
+func (_u *FilterUpdateOne) AddBenefitFilters(v ...*BenefitFilter) *FilterUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddBenefitFilterIDs(ids...)
+}
+
 // Mutation returns the FilterMutation object of the builder.
 func (_u *FilterUpdateOne) Mutation() *FilterMutation {
 	return _u.mutation
@@ -368,6 +465,27 @@ func (_u *FilterUpdateOne) RemoveUserFilters(v ...*UserFilter) *FilterUpdateOne 
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveUserFilterIDs(ids...)
+}
+
+// ClearBenefitFilters clears all "benefit_filters" edges to the BenefitFilter entity.
+func (_u *FilterUpdateOne) ClearBenefitFilters() *FilterUpdateOne {
+	_u.mutation.ClearBenefitFilters()
+	return _u
+}
+
+// RemoveBenefitFilterIDs removes the "benefit_filters" edge to BenefitFilter entities by IDs.
+func (_u *FilterUpdateOne) RemoveBenefitFilterIDs(ids ...int) *FilterUpdateOne {
+	_u.mutation.RemoveBenefitFilterIDs(ids...)
+	return _u
+}
+
+// RemoveBenefitFilters removes "benefit_filters" edges to BenefitFilter entities.
+func (_u *FilterUpdateOne) RemoveBenefitFilters(v ...*BenefitFilter) *FilterUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveBenefitFilterIDs(ids...)
 }
 
 // Where appends a list predicates to the FilterUpdate builder.
@@ -512,6 +630,51 @@ func (_u *FilterUpdateOne) sqlSave(ctx context.Context) (_node *Filter, err erro
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(userfilter.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.BenefitFiltersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   filter.BenefitFiltersTable,
+			Columns: []string{filter.BenefitFiltersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(benefitfilter.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedBenefitFiltersIDs(); len(nodes) > 0 && !_u.mutation.BenefitFiltersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   filter.BenefitFiltersTable,
+			Columns: []string{filter.BenefitFiltersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(benefitfilter.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.BenefitFiltersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   filter.BenefitFiltersTable,
+			Columns: []string{filter.BenefitFiltersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(benefitfilter.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

@@ -4,7 +4,6 @@ package ent
 
 import (
 	"context"
-	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -12,60 +11,60 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/citizenkz/core/ent/benefit"
 	"github.com/citizenkz/core/ent/benefitfilter"
 	"github.com/citizenkz/core/ent/filter"
 	"github.com/citizenkz/core/ent/predicate"
-	"github.com/citizenkz/core/ent/userfilter"
 )
 
-// FilterQuery is the builder for querying Filter entities.
-type FilterQuery struct {
+// BenefitFilterQuery is the builder for querying BenefitFilter entities.
+type BenefitFilterQuery struct {
 	config
-	ctx                *QueryContext
-	order              []filter.OrderOption
-	inters             []Interceptor
-	predicates         []predicate.Filter
-	withUserFilters    *UserFilterQuery
-	withBenefitFilters *BenefitFilterQuery
+	ctx         *QueryContext
+	order       []benefitfilter.OrderOption
+	inters      []Interceptor
+	predicates  []predicate.BenefitFilter
+	withBenefit *BenefitQuery
+	withFilter  *FilterQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
 }
 
-// Where adds a new predicate for the FilterQuery builder.
-func (_q *FilterQuery) Where(ps ...predicate.Filter) *FilterQuery {
+// Where adds a new predicate for the BenefitFilterQuery builder.
+func (_q *BenefitFilterQuery) Where(ps ...predicate.BenefitFilter) *BenefitFilterQuery {
 	_q.predicates = append(_q.predicates, ps...)
 	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (_q *FilterQuery) Limit(limit int) *FilterQuery {
+func (_q *BenefitFilterQuery) Limit(limit int) *BenefitFilterQuery {
 	_q.ctx.Limit = &limit
 	return _q
 }
 
 // Offset to start from.
-func (_q *FilterQuery) Offset(offset int) *FilterQuery {
+func (_q *BenefitFilterQuery) Offset(offset int) *BenefitFilterQuery {
 	_q.ctx.Offset = &offset
 	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (_q *FilterQuery) Unique(unique bool) *FilterQuery {
+func (_q *BenefitFilterQuery) Unique(unique bool) *BenefitFilterQuery {
 	_q.ctx.Unique = &unique
 	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (_q *FilterQuery) Order(o ...filter.OrderOption) *FilterQuery {
+func (_q *BenefitFilterQuery) Order(o ...benefitfilter.OrderOption) *BenefitFilterQuery {
 	_q.order = append(_q.order, o...)
 	return _q
 }
 
-// QueryUserFilters chains the current query on the "user_filters" edge.
-func (_q *FilterQuery) QueryUserFilters() *UserFilterQuery {
-	query := (&UserFilterClient{config: _q.config}).Query()
+// QueryBenefit chains the current query on the "benefit" edge.
+func (_q *BenefitFilterQuery) QueryBenefit() *BenefitQuery {
+	query := (&BenefitClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -75,9 +74,9 @@ func (_q *FilterQuery) QueryUserFilters() *UserFilterQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(filter.Table, filter.FieldID, selector),
-			sqlgraph.To(userfilter.Table, userfilter.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, filter.UserFiltersTable, filter.UserFiltersColumn),
+			sqlgraph.From(benefitfilter.Table, benefitfilter.FieldID, selector),
+			sqlgraph.To(benefit.Table, benefit.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, benefitfilter.BenefitTable, benefitfilter.BenefitColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -85,9 +84,9 @@ func (_q *FilterQuery) QueryUserFilters() *UserFilterQuery {
 	return query
 }
 
-// QueryBenefitFilters chains the current query on the "benefit_filters" edge.
-func (_q *FilterQuery) QueryBenefitFilters() *BenefitFilterQuery {
-	query := (&BenefitFilterClient{config: _q.config}).Query()
+// QueryFilter chains the current query on the "filter" edge.
+func (_q *BenefitFilterQuery) QueryFilter() *FilterQuery {
+	query := (&FilterClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -97,9 +96,9 @@ func (_q *FilterQuery) QueryBenefitFilters() *BenefitFilterQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(filter.Table, filter.FieldID, selector),
-			sqlgraph.To(benefitfilter.Table, benefitfilter.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, filter.BenefitFiltersTable, filter.BenefitFiltersColumn),
+			sqlgraph.From(benefitfilter.Table, benefitfilter.FieldID, selector),
+			sqlgraph.To(filter.Table, filter.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, benefitfilter.FilterTable, benefitfilter.FilterColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -107,21 +106,21 @@ func (_q *FilterQuery) QueryBenefitFilters() *BenefitFilterQuery {
 	return query
 }
 
-// First returns the first Filter entity from the query.
-// Returns a *NotFoundError when no Filter was found.
-func (_q *FilterQuery) First(ctx context.Context) (*Filter, error) {
+// First returns the first BenefitFilter entity from the query.
+// Returns a *NotFoundError when no BenefitFilter was found.
+func (_q *BenefitFilterQuery) First(ctx context.Context) (*BenefitFilter, error) {
 	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
-		return nil, &NotFoundError{filter.Label}
+		return nil, &NotFoundError{benefitfilter.Label}
 	}
 	return nodes[0], nil
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (_q *FilterQuery) FirstX(ctx context.Context) *Filter {
+func (_q *BenefitFilterQuery) FirstX(ctx context.Context) *BenefitFilter {
 	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -129,22 +128,22 @@ func (_q *FilterQuery) FirstX(ctx context.Context) *Filter {
 	return node
 }
 
-// FirstID returns the first Filter ID from the query.
-// Returns a *NotFoundError when no Filter ID was found.
-func (_q *FilterQuery) FirstID(ctx context.Context) (id int, err error) {
+// FirstID returns the first BenefitFilter ID from the query.
+// Returns a *NotFoundError when no BenefitFilter ID was found.
+func (_q *BenefitFilterQuery) FirstID(ctx context.Context) (id int, err error) {
 	var ids []int
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
-		err = &NotFoundError{filter.Label}
+		err = &NotFoundError{benefitfilter.Label}
 		return
 	}
 	return ids[0], nil
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *FilterQuery) FirstIDX(ctx context.Context) int {
+func (_q *BenefitFilterQuery) FirstIDX(ctx context.Context) int {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -152,10 +151,10 @@ func (_q *FilterQuery) FirstIDX(ctx context.Context) int {
 	return id
 }
 
-// Only returns a single Filter entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when more than one Filter entity is found.
-// Returns a *NotFoundError when no Filter entities are found.
-func (_q *FilterQuery) Only(ctx context.Context) (*Filter, error) {
+// Only returns a single BenefitFilter entity found by the query, ensuring it only returns one.
+// Returns a *NotSingularError when more than one BenefitFilter entity is found.
+// Returns a *NotFoundError when no BenefitFilter entities are found.
+func (_q *BenefitFilterQuery) Only(ctx context.Context) (*BenefitFilter, error) {
 	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
@@ -164,14 +163,14 @@ func (_q *FilterQuery) Only(ctx context.Context) (*Filter, error) {
 	case 1:
 		return nodes[0], nil
 	case 0:
-		return nil, &NotFoundError{filter.Label}
+		return nil, &NotFoundError{benefitfilter.Label}
 	default:
-		return nil, &NotSingularError{filter.Label}
+		return nil, &NotSingularError{benefitfilter.Label}
 	}
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (_q *FilterQuery) OnlyX(ctx context.Context) *Filter {
+func (_q *BenefitFilterQuery) OnlyX(ctx context.Context) *BenefitFilter {
 	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
@@ -179,10 +178,10 @@ func (_q *FilterQuery) OnlyX(ctx context.Context) *Filter {
 	return node
 }
 
-// OnlyID is like Only, but returns the only Filter ID in the query.
-// Returns a *NotSingularError when more than one Filter ID is found.
+// OnlyID is like Only, but returns the only BenefitFilter ID in the query.
+// Returns a *NotSingularError when more than one BenefitFilter ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *FilterQuery) OnlyID(ctx context.Context) (id int, err error) {
+func (_q *BenefitFilterQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
@@ -191,15 +190,15 @@ func (_q *FilterQuery) OnlyID(ctx context.Context) (id int, err error) {
 	case 1:
 		id = ids[0]
 	case 0:
-		err = &NotFoundError{filter.Label}
+		err = &NotFoundError{benefitfilter.Label}
 	default:
-		err = &NotSingularError{filter.Label}
+		err = &NotSingularError{benefitfilter.Label}
 	}
 	return
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *FilterQuery) OnlyIDX(ctx context.Context) int {
+func (_q *BenefitFilterQuery) OnlyIDX(ctx context.Context) int {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -207,18 +206,18 @@ func (_q *FilterQuery) OnlyIDX(ctx context.Context) int {
 	return id
 }
 
-// All executes the query and returns a list of Filters.
-func (_q *FilterQuery) All(ctx context.Context) ([]*Filter, error) {
+// All executes the query and returns a list of BenefitFilters.
+func (_q *BenefitFilterQuery) All(ctx context.Context) ([]*BenefitFilter, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
-	qr := querierAll[[]*Filter, *FilterQuery]()
-	return withInterceptors[[]*Filter](ctx, _q, qr, _q.inters)
+	qr := querierAll[[]*BenefitFilter, *BenefitFilterQuery]()
+	return withInterceptors[[]*BenefitFilter](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (_q *FilterQuery) AllX(ctx context.Context) []*Filter {
+func (_q *BenefitFilterQuery) AllX(ctx context.Context) []*BenefitFilter {
 	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
@@ -226,20 +225,20 @@ func (_q *FilterQuery) AllX(ctx context.Context) []*Filter {
 	return nodes
 }
 
-// IDs executes the query and returns a list of Filter IDs.
-func (_q *FilterQuery) IDs(ctx context.Context) (ids []int, err error) {
+// IDs executes the query and returns a list of BenefitFilter IDs.
+func (_q *BenefitFilterQuery) IDs(ctx context.Context) (ids []int, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
-	if err = _q.Select(filter.FieldID).Scan(ctx, &ids); err != nil {
+	if err = _q.Select(benefitfilter.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *FilterQuery) IDsX(ctx context.Context) []int {
+func (_q *BenefitFilterQuery) IDsX(ctx context.Context) []int {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -248,16 +247,16 @@ func (_q *FilterQuery) IDsX(ctx context.Context) []int {
 }
 
 // Count returns the count of the given query.
-func (_q *FilterQuery) Count(ctx context.Context) (int, error) {
+func (_q *BenefitFilterQuery) Count(ctx context.Context) (int, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, _q, querierCount[*FilterQuery](), _q.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*BenefitFilterQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (_q *FilterQuery) CountX(ctx context.Context) int {
+func (_q *BenefitFilterQuery) CountX(ctx context.Context) int {
 	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
@@ -266,7 +265,7 @@ func (_q *FilterQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (_q *FilterQuery) Exist(ctx context.Context) (bool, error) {
+func (_q *BenefitFilterQuery) Exist(ctx context.Context) (bool, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
 	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
@@ -279,7 +278,7 @@ func (_q *FilterQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (_q *FilterQuery) ExistX(ctx context.Context) bool {
+func (_q *BenefitFilterQuery) ExistX(ctx context.Context) bool {
 	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
@@ -287,45 +286,45 @@ func (_q *FilterQuery) ExistX(ctx context.Context) bool {
 	return exist
 }
 
-// Clone returns a duplicate of the FilterQuery builder, including all associated steps. It can be
+// Clone returns a duplicate of the BenefitFilterQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (_q *FilterQuery) Clone() *FilterQuery {
+func (_q *BenefitFilterQuery) Clone() *BenefitFilterQuery {
 	if _q == nil {
 		return nil
 	}
-	return &FilterQuery{
-		config:             _q.config,
-		ctx:                _q.ctx.Clone(),
-		order:              append([]filter.OrderOption{}, _q.order...),
-		inters:             append([]Interceptor{}, _q.inters...),
-		predicates:         append([]predicate.Filter{}, _q.predicates...),
-		withUserFilters:    _q.withUserFilters.Clone(),
-		withBenefitFilters: _q.withBenefitFilters.Clone(),
+	return &BenefitFilterQuery{
+		config:      _q.config,
+		ctx:         _q.ctx.Clone(),
+		order:       append([]benefitfilter.OrderOption{}, _q.order...),
+		inters:      append([]Interceptor{}, _q.inters...),
+		predicates:  append([]predicate.BenefitFilter{}, _q.predicates...),
+		withBenefit: _q.withBenefit.Clone(),
+		withFilter:  _q.withFilter.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
 }
 
-// WithUserFilters tells the query-builder to eager-load the nodes that are connected to
-// the "user_filters" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *FilterQuery) WithUserFilters(opts ...func(*UserFilterQuery)) *FilterQuery {
-	query := (&UserFilterClient{config: _q.config}).Query()
+// WithBenefit tells the query-builder to eager-load the nodes that are connected to
+// the "benefit" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *BenefitFilterQuery) WithBenefit(opts ...func(*BenefitQuery)) *BenefitFilterQuery {
+	query := (&BenefitClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withUserFilters = query
+	_q.withBenefit = query
 	return _q
 }
 
-// WithBenefitFilters tells the query-builder to eager-load the nodes that are connected to
-// the "benefit_filters" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *FilterQuery) WithBenefitFilters(opts ...func(*BenefitFilterQuery)) *FilterQuery {
-	query := (&BenefitFilterClient{config: _q.config}).Query()
+// WithFilter tells the query-builder to eager-load the nodes that are connected to
+// the "filter" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *BenefitFilterQuery) WithFilter(opts ...func(*FilterQuery)) *BenefitFilterQuery {
+	query := (&FilterClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withBenefitFilters = query
+	_q.withFilter = query
 	return _q
 }
 
@@ -335,19 +334,19 @@ func (_q *FilterQuery) WithBenefitFilters(opts ...func(*BenefitFilterQuery)) *Fi
 // Example:
 //
 //	var v []struct {
-//		Name string `json:"name,omitempty"`
+//		BenefitID int `json:"benefit_id,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
-//	client.Filter.Query().
-//		GroupBy(filter.FieldName).
+//	client.BenefitFilter.Query().
+//		GroupBy(benefitfilter.FieldBenefitID).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
-func (_q *FilterQuery) GroupBy(field string, fields ...string) *FilterGroupBy {
+func (_q *BenefitFilterQuery) GroupBy(field string, fields ...string) *BenefitFilterGroupBy {
 	_q.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &FilterGroupBy{build: _q}
+	grbuild := &BenefitFilterGroupBy{build: _q}
 	grbuild.flds = &_q.ctx.Fields
-	grbuild.label = filter.Label
+	grbuild.label = benefitfilter.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
 }
@@ -358,26 +357,26 @@ func (_q *FilterQuery) GroupBy(field string, fields ...string) *FilterGroupBy {
 // Example:
 //
 //	var v []struct {
-//		Name string `json:"name,omitempty"`
+//		BenefitID int `json:"benefit_id,omitempty"`
 //	}
 //
-//	client.Filter.Query().
-//		Select(filter.FieldName).
+//	client.BenefitFilter.Query().
+//		Select(benefitfilter.FieldBenefitID).
 //		Scan(ctx, &v)
-func (_q *FilterQuery) Select(fields ...string) *FilterSelect {
+func (_q *BenefitFilterQuery) Select(fields ...string) *BenefitFilterSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
-	sbuild := &FilterSelect{FilterQuery: _q}
-	sbuild.label = filter.Label
+	sbuild := &BenefitFilterSelect{BenefitFilterQuery: _q}
+	sbuild.label = benefitfilter.Label
 	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
-// Aggregate returns a FilterSelect configured with the given aggregations.
-func (_q *FilterQuery) Aggregate(fns ...AggregateFunc) *FilterSelect {
+// Aggregate returns a BenefitFilterSelect configured with the given aggregations.
+func (_q *BenefitFilterQuery) Aggregate(fns ...AggregateFunc) *BenefitFilterSelect {
 	return _q.Select().Aggregate(fns...)
 }
 
-func (_q *FilterQuery) prepareQuery(ctx context.Context) error {
+func (_q *BenefitFilterQuery) prepareQuery(ctx context.Context) error {
 	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("ent: uninitialized interceptor (forgotten import ent/runtime?)")
@@ -389,7 +388,7 @@ func (_q *FilterQuery) prepareQuery(ctx context.Context) error {
 		}
 	}
 	for _, f := range _q.ctx.Fields {
-		if !filter.ValidColumn(f) {
+		if !benefitfilter.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("ent: invalid field %q for query", f)}
 		}
 	}
@@ -403,20 +402,20 @@ func (_q *FilterQuery) prepareQuery(ctx context.Context) error {
 	return nil
 }
 
-func (_q *FilterQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Filter, error) {
+func (_q *BenefitFilterQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BenefitFilter, error) {
 	var (
-		nodes       = []*Filter{}
+		nodes       = []*BenefitFilter{}
 		_spec       = _q.querySpec()
 		loadedTypes = [2]bool{
-			_q.withUserFilters != nil,
-			_q.withBenefitFilters != nil,
+			_q.withBenefit != nil,
+			_q.withFilter != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
-		return (*Filter).scanValues(nil, columns)
+		return (*BenefitFilter).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &Filter{config: _q.config}
+		node := &BenefitFilter{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
@@ -430,85 +429,81 @@ func (_q *FilterQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Filte
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := _q.withUserFilters; query != nil {
-		if err := _q.loadUserFilters(ctx, query, nodes,
-			func(n *Filter) { n.Edges.UserFilters = []*UserFilter{} },
-			func(n *Filter, e *UserFilter) { n.Edges.UserFilters = append(n.Edges.UserFilters, e) }); err != nil {
+	if query := _q.withBenefit; query != nil {
+		if err := _q.loadBenefit(ctx, query, nodes, nil,
+			func(n *BenefitFilter, e *Benefit) { n.Edges.Benefit = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := _q.withBenefitFilters; query != nil {
-		if err := _q.loadBenefitFilters(ctx, query, nodes,
-			func(n *Filter) { n.Edges.BenefitFilters = []*BenefitFilter{} },
-			func(n *Filter, e *BenefitFilter) { n.Edges.BenefitFilters = append(n.Edges.BenefitFilters, e) }); err != nil {
+	if query := _q.withFilter; query != nil {
+		if err := _q.loadFilter(ctx, query, nodes, nil,
+			func(n *BenefitFilter, e *Filter) { n.Edges.Filter = e }); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
 }
 
-func (_q *FilterQuery) loadUserFilters(ctx context.Context, query *UserFilterQuery, nodes []*Filter, init func(*Filter), assign func(*Filter, *UserFilter)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*Filter)
+func (_q *BenefitFilterQuery) loadBenefit(ctx context.Context, query *BenefitQuery, nodes []*BenefitFilter, init func(*BenefitFilter), assign func(*BenefitFilter, *Benefit)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*BenefitFilter)
 	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
+		fk := nodes[i].BenefitID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
 		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
 	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(userfilter.FieldFilterID)
+	if len(ids) == 0 {
+		return nil
 	}
-	query.Where(predicate.UserFilter(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(filter.UserFiltersColumn), fks...))
-	}))
+	query.Where(benefit.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.FilterID
-		node, ok := nodeids[fk]
+		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "filter_id" returned %v for node %v`, fk, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "benefit_id" returned %v`, n.ID)
 		}
-		assign(node, n)
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
 	}
 	return nil
 }
-func (_q *FilterQuery) loadBenefitFilters(ctx context.Context, query *BenefitFilterQuery, nodes []*Filter, init func(*Filter), assign func(*Filter, *BenefitFilter)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*Filter)
+func (_q *BenefitFilterQuery) loadFilter(ctx context.Context, query *FilterQuery, nodes []*BenefitFilter, init func(*BenefitFilter), assign func(*BenefitFilter, *Filter)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*BenefitFilter)
 	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
+		fk := nodes[i].FilterID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
 		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
 	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(benefitfilter.FieldFilterID)
+	if len(ids) == 0 {
+		return nil
 	}
-	query.Where(predicate.BenefitFilter(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(filter.BenefitFiltersColumn), fks...))
-	}))
+	query.Where(filter.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.FilterID
-		node, ok := nodeids[fk]
+		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "filter_id" returned %v for node %v`, fk, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "filter_id" returned %v`, n.ID)
 		}
-		assign(node, n)
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
 	}
 	return nil
 }
 
-func (_q *FilterQuery) sqlCount(ctx context.Context) (int, error) {
+func (_q *BenefitFilterQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
 	_spec.Node.Columns = _q.ctx.Fields
 	if len(_q.ctx.Fields) > 0 {
@@ -517,8 +512,8 @@ func (_q *FilterQuery) sqlCount(ctx context.Context) (int, error) {
 	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (_q *FilterQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(filter.Table, filter.Columns, sqlgraph.NewFieldSpec(filter.FieldID, field.TypeInt))
+func (_q *BenefitFilterQuery) querySpec() *sqlgraph.QuerySpec {
+	_spec := sqlgraph.NewQuerySpec(benefitfilter.Table, benefitfilter.Columns, sqlgraph.NewFieldSpec(benefitfilter.FieldID, field.TypeInt))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
@@ -527,11 +522,17 @@ func (_q *FilterQuery) querySpec() *sqlgraph.QuerySpec {
 	}
 	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, filter.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, benefitfilter.FieldID)
 		for i := range fields {
-			if fields[i] != filter.FieldID {
+			if fields[i] != benefitfilter.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if _q.withBenefit != nil {
+			_spec.Node.AddColumnOnce(benefitfilter.FieldBenefitID)
+		}
+		if _q.withFilter != nil {
+			_spec.Node.AddColumnOnce(benefitfilter.FieldFilterID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {
@@ -557,12 +558,12 @@ func (_q *FilterQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (_q *FilterQuery) sqlQuery(ctx context.Context) *sql.Selector {
+func (_q *BenefitFilterQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(_q.driver.Dialect())
-	t1 := builder.Table(filter.Table)
+	t1 := builder.Table(benefitfilter.Table)
 	columns := _q.ctx.Fields
 	if len(columns) == 0 {
-		columns = filter.Columns
+		columns = benefitfilter.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
 	if _q.sql != nil {
@@ -589,28 +590,28 @@ func (_q *FilterQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	return selector
 }
 
-// FilterGroupBy is the group-by builder for Filter entities.
-type FilterGroupBy struct {
+// BenefitFilterGroupBy is the group-by builder for BenefitFilter entities.
+type BenefitFilterGroupBy struct {
 	selector
-	build *FilterQuery
+	build *BenefitFilterQuery
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (_g *FilterGroupBy) Aggregate(fns ...AggregateFunc) *FilterGroupBy {
+func (_g *BenefitFilterGroupBy) Aggregate(fns ...AggregateFunc) *BenefitFilterGroupBy {
 	_g.fns = append(_g.fns, fns...)
 	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_g *FilterGroupBy) Scan(ctx context.Context, v any) error {
+func (_g *BenefitFilterGroupBy) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
 	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*FilterQuery, *FilterGroupBy](ctx, _g.build, _g, _g.build.inters, v)
+	return scanWithInterceptors[*BenefitFilterQuery, *BenefitFilterGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (_g *FilterGroupBy) sqlScan(ctx context.Context, root *FilterQuery, v any) error {
+func (_g *BenefitFilterGroupBy) sqlScan(ctx context.Context, root *BenefitFilterQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
 	aggregation := make([]string, 0, len(_g.fns))
 	for _, fn := range _g.fns {
@@ -637,28 +638,28 @@ func (_g *FilterGroupBy) sqlScan(ctx context.Context, root *FilterQuery, v any) 
 	return sql.ScanSlice(rows, v)
 }
 
-// FilterSelect is the builder for selecting fields of Filter entities.
-type FilterSelect struct {
-	*FilterQuery
+// BenefitFilterSelect is the builder for selecting fields of BenefitFilter entities.
+type BenefitFilterSelect struct {
+	*BenefitFilterQuery
 	selector
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (_s *FilterSelect) Aggregate(fns ...AggregateFunc) *FilterSelect {
+func (_s *BenefitFilterSelect) Aggregate(fns ...AggregateFunc) *BenefitFilterSelect {
 	_s.fns = append(_s.fns, fns...)
 	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_s *FilterSelect) Scan(ctx context.Context, v any) error {
+func (_s *BenefitFilterSelect) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
 	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*FilterQuery, *FilterSelect](ctx, _s.FilterQuery, _s, _s.inters, v)
+	return scanWithInterceptors[*BenefitFilterQuery, *BenefitFilterSelect](ctx, _s.BenefitFilterQuery, _s, _s.inters, v)
 }
 
-func (_s *FilterSelect) sqlScan(ctx context.Context, root *FilterQuery, v any) error {
+func (_s *BenefitFilterSelect) sqlScan(ctx context.Context, root *BenefitFilterQuery, v any) error {
 	selector := root.sqlQuery(ctx)
 	aggregation := make([]string, 0, len(_s.fns))
 	for _, fn := range _s.fns {
