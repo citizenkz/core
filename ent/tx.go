@@ -14,6 +14,10 @@ type Tx struct {
 	config
 	// Attempt is the client for interacting with the Attempt builders.
 	Attempt *AttemptClient
+	// Benefit is the client for interacting with the Benefit builders.
+	Benefit *BenefitClient
+	// BenefitFilter is the client for interacting with the BenefitFilter builders.
+	BenefitFilter *BenefitFilterClient
 	// Filter is the client for interacting with the Filter builders.
 	Filter *FilterClient
 	// User is the client for interacting with the User builders.
@@ -152,6 +156,8 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.Attempt = NewAttemptClient(tx.config)
+	tx.Benefit = NewBenefitClient(tx.config)
+	tx.BenefitFilter = NewBenefitFilterClient(tx.config)
 	tx.Filter = NewFilterClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 	tx.UserFilter = NewUserFilterClient(tx.config)

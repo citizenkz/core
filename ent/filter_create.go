@@ -9,6 +9,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/citizenkz/core/ent/benefitfilter"
 	"github.com/citizenkz/core/ent/filter"
 	"github.com/citizenkz/core/ent/userfilter"
 )
@@ -65,6 +66,21 @@ func (_c *FilterCreate) AddUserFilters(v ...*UserFilter) *FilterCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddUserFilterIDs(ids...)
+}
+
+// AddBenefitFilterIDs adds the "benefit_filters" edge to the BenefitFilter entity by IDs.
+func (_c *FilterCreate) AddBenefitFilterIDs(ids ...int) *FilterCreate {
+	_c.mutation.AddBenefitFilterIDs(ids...)
+	return _c
+}
+
+// AddBenefitFilters adds the "benefit_filters" edges to the BenefitFilter entity.
+func (_c *FilterCreate) AddBenefitFilters(v ...*BenefitFilter) *FilterCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddBenefitFilterIDs(ids...)
 }
 
 // Mutation returns the FilterMutation object of the builder.
@@ -171,6 +187,22 @@ func (_c *FilterCreate) createSpec() (*Filter, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(userfilter.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.BenefitFiltersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   filter.BenefitFiltersTable,
+			Columns: []string{filter.BenefitFiltersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(benefitfilter.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

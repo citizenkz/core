@@ -9,6 +9,12 @@ import (
 // Attempt is the predicate function for attempt builders.
 type Attempt func(*sql.Selector)
 
+// Benefit is the predicate function for benefit builders.
+type Benefit func(*sql.Selector)
+
+// BenefitFilter is the predicate function for benefitfilter builders.
+type BenefitFilter func(*sql.Selector)
+
 // Filter is the predicate function for filter builders.
 type Filter func(*sql.Selector)
 

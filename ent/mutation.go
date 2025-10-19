@@ -12,6 +12,8 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/citizenkz/core/ent/attempt"
+	"github.com/citizenkz/core/ent/benefit"
+	"github.com/citizenkz/core/ent/benefitfilter"
 	"github.com/citizenkz/core/ent/filter"
 	"github.com/citizenkz/core/ent/predicate"
 	"github.com/citizenkz/core/ent/user"
@@ -28,10 +30,12 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeAttempt    = "Attempt"
-	TypeFilter     = "Filter"
-	TypeUser       = "User"
-	TypeUserFilter = "UserFilter"
+	TypeAttempt       = "Attempt"
+	TypeBenefit       = "Benefit"
+	TypeBenefitFilter = "BenefitFilter"
+	TypeFilter        = "Filter"
+	TypeUser          = "User"
+	TypeUserFilter    = "UserFilter"
 )
 
 // AttemptMutation represents an operation that mutates the Attempt nodes in the graph.
@@ -420,24 +424,1408 @@ func (m *AttemptMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown Attempt edge %s", name)
 }
 
+// BenefitMutation represents an operation that mutates the Benefit nodes in the graph.
+type BenefitMutation struct {
+	config
+	op                     Op
+	typ                    string
+	id                     *int
+	title                  *string
+	content                *string
+	bonus                  *string
+	video_url              *string
+	source_url             *string
+	clearedFields          map[string]struct{}
+	benefit_filters        map[int]struct{}
+	removedbenefit_filters map[int]struct{}
+	clearedbenefit_filters bool
+	done                   bool
+	oldValue               func(context.Context) (*Benefit, error)
+	predicates             []predicate.Benefit
+}
+
+var _ ent.Mutation = (*BenefitMutation)(nil)
+
+// benefitOption allows management of the mutation configuration using functional options.
+type benefitOption func(*BenefitMutation)
+
+// newBenefitMutation creates new mutation for the Benefit entity.
+func newBenefitMutation(c config, op Op, opts ...benefitOption) *BenefitMutation {
+	m := &BenefitMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeBenefit,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withBenefitID sets the ID field of the mutation.
+func withBenefitID(id int) benefitOption {
+	return func(m *BenefitMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Benefit
+		)
+		m.oldValue = func(ctx context.Context) (*Benefit, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Benefit.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withBenefit sets the old Benefit of the mutation.
+func withBenefit(node *Benefit) benefitOption {
+	return func(m *BenefitMutation) {
+		m.oldValue = func(context.Context) (*Benefit, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m BenefitMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m BenefitMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *BenefitMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *BenefitMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Benefit.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetTitle sets the "title" field.
+func (m *BenefitMutation) SetTitle(s string) {
+	m.title = &s
+}
+
+// Title returns the value of the "title" field in the mutation.
+func (m *BenefitMutation) Title() (r string, exists bool) {
+	v := m.title
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTitle returns the old "title" field's value of the Benefit entity.
+// If the Benefit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BenefitMutation) OldTitle(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTitle is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTitle requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTitle: %w", err)
+	}
+	return oldValue.Title, nil
+}
+
+// ResetTitle resets all changes to the "title" field.
+func (m *BenefitMutation) ResetTitle() {
+	m.title = nil
+}
+
+// SetContent sets the "content" field.
+func (m *BenefitMutation) SetContent(s string) {
+	m.content = &s
+}
+
+// Content returns the value of the "content" field in the mutation.
+func (m *BenefitMutation) Content() (r string, exists bool) {
+	v := m.content
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldContent returns the old "content" field's value of the Benefit entity.
+// If the Benefit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BenefitMutation) OldContent(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldContent is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldContent requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldContent: %w", err)
+	}
+	return oldValue.Content, nil
+}
+
+// ResetContent resets all changes to the "content" field.
+func (m *BenefitMutation) ResetContent() {
+	m.content = nil
+}
+
+// SetBonus sets the "bonus" field.
+func (m *BenefitMutation) SetBonus(s string) {
+	m.bonus = &s
+}
+
+// Bonus returns the value of the "bonus" field in the mutation.
+func (m *BenefitMutation) Bonus() (r string, exists bool) {
+	v := m.bonus
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBonus returns the old "bonus" field's value of the Benefit entity.
+// If the Benefit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BenefitMutation) OldBonus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBonus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBonus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBonus: %w", err)
+	}
+	return oldValue.Bonus, nil
+}
+
+// ResetBonus resets all changes to the "bonus" field.
+func (m *BenefitMutation) ResetBonus() {
+	m.bonus = nil
+}
+
+// SetVideoURL sets the "video_url" field.
+func (m *BenefitMutation) SetVideoURL(s string) {
+	m.video_url = &s
+}
+
+// VideoURL returns the value of the "video_url" field in the mutation.
+func (m *BenefitMutation) VideoURL() (r string, exists bool) {
+	v := m.video_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVideoURL returns the old "video_url" field's value of the Benefit entity.
+// If the Benefit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BenefitMutation) OldVideoURL(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVideoURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVideoURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVideoURL: %w", err)
+	}
+	return oldValue.VideoURL, nil
+}
+
+// ClearVideoURL clears the value of the "video_url" field.
+func (m *BenefitMutation) ClearVideoURL() {
+	m.video_url = nil
+	m.clearedFields[benefit.FieldVideoURL] = struct{}{}
+}
+
+// VideoURLCleared returns if the "video_url" field was cleared in this mutation.
+func (m *BenefitMutation) VideoURLCleared() bool {
+	_, ok := m.clearedFields[benefit.FieldVideoURL]
+	return ok
+}
+
+// ResetVideoURL resets all changes to the "video_url" field.
+func (m *BenefitMutation) ResetVideoURL() {
+	m.video_url = nil
+	delete(m.clearedFields, benefit.FieldVideoURL)
+}
+
+// SetSourceURL sets the "source_url" field.
+func (m *BenefitMutation) SetSourceURL(s string) {
+	m.source_url = &s
+}
+
+// SourceURL returns the value of the "source_url" field in the mutation.
+func (m *BenefitMutation) SourceURL() (r string, exists bool) {
+	v := m.source_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSourceURL returns the old "source_url" field's value of the Benefit entity.
+// If the Benefit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BenefitMutation) OldSourceURL(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSourceURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSourceURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSourceURL: %w", err)
+	}
+	return oldValue.SourceURL, nil
+}
+
+// ClearSourceURL clears the value of the "source_url" field.
+func (m *BenefitMutation) ClearSourceURL() {
+	m.source_url = nil
+	m.clearedFields[benefit.FieldSourceURL] = struct{}{}
+}
+
+// SourceURLCleared returns if the "source_url" field was cleared in this mutation.
+func (m *BenefitMutation) SourceURLCleared() bool {
+	_, ok := m.clearedFields[benefit.FieldSourceURL]
+	return ok
+}
+
+// ResetSourceURL resets all changes to the "source_url" field.
+func (m *BenefitMutation) ResetSourceURL() {
+	m.source_url = nil
+	delete(m.clearedFields, benefit.FieldSourceURL)
+}
+
+// AddBenefitFilterIDs adds the "benefit_filters" edge to the BenefitFilter entity by ids.
+func (m *BenefitMutation) AddBenefitFilterIDs(ids ...int) {
+	if m.benefit_filters == nil {
+		m.benefit_filters = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.benefit_filters[ids[i]] = struct{}{}
+	}
+}
+
+// ClearBenefitFilters clears the "benefit_filters" edge to the BenefitFilter entity.
+func (m *BenefitMutation) ClearBenefitFilters() {
+	m.clearedbenefit_filters = true
+}
+
+// BenefitFiltersCleared reports if the "benefit_filters" edge to the BenefitFilter entity was cleared.
+func (m *BenefitMutation) BenefitFiltersCleared() bool {
+	return m.clearedbenefit_filters
+}
+
+// RemoveBenefitFilterIDs removes the "benefit_filters" edge to the BenefitFilter entity by IDs.
+func (m *BenefitMutation) RemoveBenefitFilterIDs(ids ...int) {
+	if m.removedbenefit_filters == nil {
+		m.removedbenefit_filters = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.benefit_filters, ids[i])
+		m.removedbenefit_filters[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedBenefitFilters returns the removed IDs of the "benefit_filters" edge to the BenefitFilter entity.
+func (m *BenefitMutation) RemovedBenefitFiltersIDs() (ids []int) {
+	for id := range m.removedbenefit_filters {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// BenefitFiltersIDs returns the "benefit_filters" edge IDs in the mutation.
+func (m *BenefitMutation) BenefitFiltersIDs() (ids []int) {
+	for id := range m.benefit_filters {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetBenefitFilters resets all changes to the "benefit_filters" edge.
+func (m *BenefitMutation) ResetBenefitFilters() {
+	m.benefit_filters = nil
+	m.clearedbenefit_filters = false
+	m.removedbenefit_filters = nil
+}
+
+// Where appends a list predicates to the BenefitMutation builder.
+func (m *BenefitMutation) Where(ps ...predicate.Benefit) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the BenefitMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *BenefitMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Benefit, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *BenefitMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *BenefitMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Benefit).
+func (m *BenefitMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *BenefitMutation) Fields() []string {
+	fields := make([]string, 0, 5)
+	if m.title != nil {
+		fields = append(fields, benefit.FieldTitle)
+	}
+	if m.content != nil {
+		fields = append(fields, benefit.FieldContent)
+	}
+	if m.bonus != nil {
+		fields = append(fields, benefit.FieldBonus)
+	}
+	if m.video_url != nil {
+		fields = append(fields, benefit.FieldVideoURL)
+	}
+	if m.source_url != nil {
+		fields = append(fields, benefit.FieldSourceURL)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *BenefitMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case benefit.FieldTitle:
+		return m.Title()
+	case benefit.FieldContent:
+		return m.Content()
+	case benefit.FieldBonus:
+		return m.Bonus()
+	case benefit.FieldVideoURL:
+		return m.VideoURL()
+	case benefit.FieldSourceURL:
+		return m.SourceURL()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *BenefitMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case benefit.FieldTitle:
+		return m.OldTitle(ctx)
+	case benefit.FieldContent:
+		return m.OldContent(ctx)
+	case benefit.FieldBonus:
+		return m.OldBonus(ctx)
+	case benefit.FieldVideoURL:
+		return m.OldVideoURL(ctx)
+	case benefit.FieldSourceURL:
+		return m.OldSourceURL(ctx)
+	}
+	return nil, fmt.Errorf("unknown Benefit field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BenefitMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case benefit.FieldTitle:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTitle(v)
+		return nil
+	case benefit.FieldContent:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetContent(v)
+		return nil
+	case benefit.FieldBonus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBonus(v)
+		return nil
+	case benefit.FieldVideoURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVideoURL(v)
+		return nil
+	case benefit.FieldSourceURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSourceURL(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Benefit field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *BenefitMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *BenefitMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BenefitMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Benefit numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *BenefitMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(benefit.FieldVideoURL) {
+		fields = append(fields, benefit.FieldVideoURL)
+	}
+	if m.FieldCleared(benefit.FieldSourceURL) {
+		fields = append(fields, benefit.FieldSourceURL)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *BenefitMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *BenefitMutation) ClearField(name string) error {
+	switch name {
+	case benefit.FieldVideoURL:
+		m.ClearVideoURL()
+		return nil
+	case benefit.FieldSourceURL:
+		m.ClearSourceURL()
+		return nil
+	}
+	return fmt.Errorf("unknown Benefit nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *BenefitMutation) ResetField(name string) error {
+	switch name {
+	case benefit.FieldTitle:
+		m.ResetTitle()
+		return nil
+	case benefit.FieldContent:
+		m.ResetContent()
+		return nil
+	case benefit.FieldBonus:
+		m.ResetBonus()
+		return nil
+	case benefit.FieldVideoURL:
+		m.ResetVideoURL()
+		return nil
+	case benefit.FieldSourceURL:
+		m.ResetSourceURL()
+		return nil
+	}
+	return fmt.Errorf("unknown Benefit field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *BenefitMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.benefit_filters != nil {
+		edges = append(edges, benefit.EdgeBenefitFilters)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *BenefitMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case benefit.EdgeBenefitFilters:
+		ids := make([]ent.Value, 0, len(m.benefit_filters))
+		for id := range m.benefit_filters {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *BenefitMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.removedbenefit_filters != nil {
+		edges = append(edges, benefit.EdgeBenefitFilters)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *BenefitMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case benefit.EdgeBenefitFilters:
+		ids := make([]ent.Value, 0, len(m.removedbenefit_filters))
+		for id := range m.removedbenefit_filters {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *BenefitMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedbenefit_filters {
+		edges = append(edges, benefit.EdgeBenefitFilters)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *BenefitMutation) EdgeCleared(name string) bool {
+	switch name {
+	case benefit.EdgeBenefitFilters:
+		return m.clearedbenefit_filters
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *BenefitMutation) ClearEdge(name string) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Benefit unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *BenefitMutation) ResetEdge(name string) error {
+	switch name {
+	case benefit.EdgeBenefitFilters:
+		m.ResetBenefitFilters()
+		return nil
+	}
+	return fmt.Errorf("unknown Benefit edge %s", name)
+}
+
+// BenefitFilterMutation represents an operation that mutates the BenefitFilter nodes in the graph.
+type BenefitFilterMutation struct {
+	config
+	op             Op
+	typ            string
+	id             *int
+	value          *string
+	from           *string
+	to             *string
+	clearedFields  map[string]struct{}
+	benefit        *int
+	clearedbenefit bool
+	filter         *int
+	clearedfilter  bool
+	done           bool
+	oldValue       func(context.Context) (*BenefitFilter, error)
+	predicates     []predicate.BenefitFilter
+}
+
+var _ ent.Mutation = (*BenefitFilterMutation)(nil)
+
+// benefitfilterOption allows management of the mutation configuration using functional options.
+type benefitfilterOption func(*BenefitFilterMutation)
+
+// newBenefitFilterMutation creates new mutation for the BenefitFilter entity.
+func newBenefitFilterMutation(c config, op Op, opts ...benefitfilterOption) *BenefitFilterMutation {
+	m := &BenefitFilterMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeBenefitFilter,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withBenefitFilterID sets the ID field of the mutation.
+func withBenefitFilterID(id int) benefitfilterOption {
+	return func(m *BenefitFilterMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *BenefitFilter
+		)
+		m.oldValue = func(ctx context.Context) (*BenefitFilter, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().BenefitFilter.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withBenefitFilter sets the old BenefitFilter of the mutation.
+func withBenefitFilter(node *BenefitFilter) benefitfilterOption {
+	return func(m *BenefitFilterMutation) {
+		m.oldValue = func(context.Context) (*BenefitFilter, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m BenefitFilterMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m BenefitFilterMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *BenefitFilterMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *BenefitFilterMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().BenefitFilter.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetBenefitID sets the "benefit_id" field.
+func (m *BenefitFilterMutation) SetBenefitID(i int) {
+	m.benefit = &i
+}
+
+// BenefitID returns the value of the "benefit_id" field in the mutation.
+func (m *BenefitFilterMutation) BenefitID() (r int, exists bool) {
+	v := m.benefit
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBenefitID returns the old "benefit_id" field's value of the BenefitFilter entity.
+// If the BenefitFilter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BenefitFilterMutation) OldBenefitID(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBenefitID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBenefitID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBenefitID: %w", err)
+	}
+	return oldValue.BenefitID, nil
+}
+
+// ResetBenefitID resets all changes to the "benefit_id" field.
+func (m *BenefitFilterMutation) ResetBenefitID() {
+	m.benefit = nil
+}
+
+// SetFilterID sets the "filter_id" field.
+func (m *BenefitFilterMutation) SetFilterID(i int) {
+	m.filter = &i
+}
+
+// FilterID returns the value of the "filter_id" field in the mutation.
+func (m *BenefitFilterMutation) FilterID() (r int, exists bool) {
+	v := m.filter
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFilterID returns the old "filter_id" field's value of the BenefitFilter entity.
+// If the BenefitFilter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BenefitFilterMutation) OldFilterID(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFilterID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFilterID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFilterID: %w", err)
+	}
+	return oldValue.FilterID, nil
+}
+
+// ResetFilterID resets all changes to the "filter_id" field.
+func (m *BenefitFilterMutation) ResetFilterID() {
+	m.filter = nil
+}
+
+// SetValue sets the "value" field.
+func (m *BenefitFilterMutation) SetValue(s string) {
+	m.value = &s
+}
+
+// Value returns the value of the "value" field in the mutation.
+func (m *BenefitFilterMutation) Value() (r string, exists bool) {
+	v := m.value
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldValue returns the old "value" field's value of the BenefitFilter entity.
+// If the BenefitFilter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BenefitFilterMutation) OldValue(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldValue is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldValue requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldValue: %w", err)
+	}
+	return oldValue.Value, nil
+}
+
+// ClearValue clears the value of the "value" field.
+func (m *BenefitFilterMutation) ClearValue() {
+	m.value = nil
+	m.clearedFields[benefitfilter.FieldValue] = struct{}{}
+}
+
+// ValueCleared returns if the "value" field was cleared in this mutation.
+func (m *BenefitFilterMutation) ValueCleared() bool {
+	_, ok := m.clearedFields[benefitfilter.FieldValue]
+	return ok
+}
+
+// ResetValue resets all changes to the "value" field.
+func (m *BenefitFilterMutation) ResetValue() {
+	m.value = nil
+	delete(m.clearedFields, benefitfilter.FieldValue)
+}
+
+// SetFrom sets the "from" field.
+func (m *BenefitFilterMutation) SetFrom(s string) {
+	m.from = &s
+}
+
+// From returns the value of the "from" field in the mutation.
+func (m *BenefitFilterMutation) From() (r string, exists bool) {
+	v := m.from
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFrom returns the old "from" field's value of the BenefitFilter entity.
+// If the BenefitFilter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BenefitFilterMutation) OldFrom(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFrom is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFrom requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFrom: %w", err)
+	}
+	return oldValue.From, nil
+}
+
+// ClearFrom clears the value of the "from" field.
+func (m *BenefitFilterMutation) ClearFrom() {
+	m.from = nil
+	m.clearedFields[benefitfilter.FieldFrom] = struct{}{}
+}
+
+// FromCleared returns if the "from" field was cleared in this mutation.
+func (m *BenefitFilterMutation) FromCleared() bool {
+	_, ok := m.clearedFields[benefitfilter.FieldFrom]
+	return ok
+}
+
+// ResetFrom resets all changes to the "from" field.
+func (m *BenefitFilterMutation) ResetFrom() {
+	m.from = nil
+	delete(m.clearedFields, benefitfilter.FieldFrom)
+}
+
+// SetTo sets the "to" field.
+func (m *BenefitFilterMutation) SetTo(s string) {
+	m.to = &s
+}
+
+// To returns the value of the "to" field in the mutation.
+func (m *BenefitFilterMutation) To() (r string, exists bool) {
+	v := m.to
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTo returns the old "to" field's value of the BenefitFilter entity.
+// If the BenefitFilter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BenefitFilterMutation) OldTo(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTo: %w", err)
+	}
+	return oldValue.To, nil
+}
+
+// ClearTo clears the value of the "to" field.
+func (m *BenefitFilterMutation) ClearTo() {
+	m.to = nil
+	m.clearedFields[benefitfilter.FieldTo] = struct{}{}
+}
+
+// ToCleared returns if the "to" field was cleared in this mutation.
+func (m *BenefitFilterMutation) ToCleared() bool {
+	_, ok := m.clearedFields[benefitfilter.FieldTo]
+	return ok
+}
+
+// ResetTo resets all changes to the "to" field.
+func (m *BenefitFilterMutation) ResetTo() {
+	m.to = nil
+	delete(m.clearedFields, benefitfilter.FieldTo)
+}
+
+// ClearBenefit clears the "benefit" edge to the Benefit entity.
+func (m *BenefitFilterMutation) ClearBenefit() {
+	m.clearedbenefit = true
+	m.clearedFields[benefitfilter.FieldBenefitID] = struct{}{}
+}
+
+// BenefitCleared reports if the "benefit" edge to the Benefit entity was cleared.
+func (m *BenefitFilterMutation) BenefitCleared() bool {
+	return m.clearedbenefit
+}
+
+// BenefitIDs returns the "benefit" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// BenefitID instead. It exists only for internal usage by the builders.
+func (m *BenefitFilterMutation) BenefitIDs() (ids []int) {
+	if id := m.benefit; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetBenefit resets all changes to the "benefit" edge.
+func (m *BenefitFilterMutation) ResetBenefit() {
+	m.benefit = nil
+	m.clearedbenefit = false
+}
+
+// ClearFilter clears the "filter" edge to the Filter entity.
+func (m *BenefitFilterMutation) ClearFilter() {
+	m.clearedfilter = true
+	m.clearedFields[benefitfilter.FieldFilterID] = struct{}{}
+}
+
+// FilterCleared reports if the "filter" edge to the Filter entity was cleared.
+func (m *BenefitFilterMutation) FilterCleared() bool {
+	return m.clearedfilter
+}
+
+// FilterIDs returns the "filter" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// FilterID instead. It exists only for internal usage by the builders.
+func (m *BenefitFilterMutation) FilterIDs() (ids []int) {
+	if id := m.filter; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetFilter resets all changes to the "filter" edge.
+func (m *BenefitFilterMutation) ResetFilter() {
+	m.filter = nil
+	m.clearedfilter = false
+}
+
+// Where appends a list predicates to the BenefitFilterMutation builder.
+func (m *BenefitFilterMutation) Where(ps ...predicate.BenefitFilter) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the BenefitFilterMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *BenefitFilterMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.BenefitFilter, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *BenefitFilterMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *BenefitFilterMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (BenefitFilter).
+func (m *BenefitFilterMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *BenefitFilterMutation) Fields() []string {
+	fields := make([]string, 0, 5)
+	if m.benefit != nil {
+		fields = append(fields, benefitfilter.FieldBenefitID)
+	}
+	if m.filter != nil {
+		fields = append(fields, benefitfilter.FieldFilterID)
+	}
+	if m.value != nil {
+		fields = append(fields, benefitfilter.FieldValue)
+	}
+	if m.from != nil {
+		fields = append(fields, benefitfilter.FieldFrom)
+	}
+	if m.to != nil {
+		fields = append(fields, benefitfilter.FieldTo)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *BenefitFilterMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case benefitfilter.FieldBenefitID:
+		return m.BenefitID()
+	case benefitfilter.FieldFilterID:
+		return m.FilterID()
+	case benefitfilter.FieldValue:
+		return m.Value()
+	case benefitfilter.FieldFrom:
+		return m.From()
+	case benefitfilter.FieldTo:
+		return m.To()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *BenefitFilterMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case benefitfilter.FieldBenefitID:
+		return m.OldBenefitID(ctx)
+	case benefitfilter.FieldFilterID:
+		return m.OldFilterID(ctx)
+	case benefitfilter.FieldValue:
+		return m.OldValue(ctx)
+	case benefitfilter.FieldFrom:
+		return m.OldFrom(ctx)
+	case benefitfilter.FieldTo:
+		return m.OldTo(ctx)
+	}
+	return nil, fmt.Errorf("unknown BenefitFilter field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BenefitFilterMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case benefitfilter.FieldBenefitID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBenefitID(v)
+		return nil
+	case benefitfilter.FieldFilterID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFilterID(v)
+		return nil
+	case benefitfilter.FieldValue:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetValue(v)
+		return nil
+	case benefitfilter.FieldFrom:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFrom(v)
+		return nil
+	case benefitfilter.FieldTo:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTo(v)
+		return nil
+	}
+	return fmt.Errorf("unknown BenefitFilter field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *BenefitFilterMutation) AddedFields() []string {
+	var fields []string
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *BenefitFilterMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BenefitFilterMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown BenefitFilter numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *BenefitFilterMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(benefitfilter.FieldValue) {
+		fields = append(fields, benefitfilter.FieldValue)
+	}
+	if m.FieldCleared(benefitfilter.FieldFrom) {
+		fields = append(fields, benefitfilter.FieldFrom)
+	}
+	if m.FieldCleared(benefitfilter.FieldTo) {
+		fields = append(fields, benefitfilter.FieldTo)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *BenefitFilterMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *BenefitFilterMutation) ClearField(name string) error {
+	switch name {
+	case benefitfilter.FieldValue:
+		m.ClearValue()
+		return nil
+	case benefitfilter.FieldFrom:
+		m.ClearFrom()
+		return nil
+	case benefitfilter.FieldTo:
+		m.ClearTo()
+		return nil
+	}
+	return fmt.Errorf("unknown BenefitFilter nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *BenefitFilterMutation) ResetField(name string) error {
+	switch name {
+	case benefitfilter.FieldBenefitID:
+		m.ResetBenefitID()
+		return nil
+	case benefitfilter.FieldFilterID:
+		m.ResetFilterID()
+		return nil
+	case benefitfilter.FieldValue:
+		m.ResetValue()
+		return nil
+	case benefitfilter.FieldFrom:
+		m.ResetFrom()
+		return nil
+	case benefitfilter.FieldTo:
+		m.ResetTo()
+		return nil
+	}
+	return fmt.Errorf("unknown BenefitFilter field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *BenefitFilterMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.benefit != nil {
+		edges = append(edges, benefitfilter.EdgeBenefit)
+	}
+	if m.filter != nil {
+		edges = append(edges, benefitfilter.EdgeFilter)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *BenefitFilterMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case benefitfilter.EdgeBenefit:
+		if id := m.benefit; id != nil {
+			return []ent.Value{*id}
+		}
+	case benefitfilter.EdgeFilter:
+		if id := m.filter; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *BenefitFilterMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *BenefitFilterMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *BenefitFilterMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedbenefit {
+		edges = append(edges, benefitfilter.EdgeBenefit)
+	}
+	if m.clearedfilter {
+		edges = append(edges, benefitfilter.EdgeFilter)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *BenefitFilterMutation) EdgeCleared(name string) bool {
+	switch name {
+	case benefitfilter.EdgeBenefit:
+		return m.clearedbenefit
+	case benefitfilter.EdgeFilter:
+		return m.clearedfilter
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *BenefitFilterMutation) ClearEdge(name string) error {
+	switch name {
+	case benefitfilter.EdgeBenefit:
+		m.ClearBenefit()
+		return nil
+	case benefitfilter.EdgeFilter:
+		m.ClearFilter()
+		return nil
+	}
+	return fmt.Errorf("unknown BenefitFilter unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *BenefitFilterMutation) ResetEdge(name string) error {
+	switch name {
+	case benefitfilter.EdgeBenefit:
+		m.ResetBenefit()
+		return nil
+	case benefitfilter.EdgeFilter:
+		m.ResetFilter()
+		return nil
+	}
+	return fmt.Errorf("unknown BenefitFilter edge %s", name)
+}
+
 // FilterMutation represents an operation that mutates the Filter nodes in the graph.
 type FilterMutation struct {
 	config
-	op                  Op
-	typ                 string
-	id                  *int
-	name                *string
-	hint                *string
-	_type               *filter.Type
-	values              *[]string
-	appendvalues        []string
-	clearedFields       map[string]struct{}
-	user_filters        map[int]struct{}
-	removeduser_filters map[int]struct{}
-	cleareduser_filters bool
-	done                bool
-	oldValue            func(context.Context) (*Filter, error)
-	predicates          []predicate.Filter
+	op                     Op
+	typ                    string
+	id                     *int
+	name                   *string
+	hint                   *string
+	_type                  *filter.Type
+	values                 *[]string
+	appendvalues           []string
+	clearedFields          map[string]struct{}
+	user_filters           map[int]struct{}
+	removeduser_filters    map[int]struct{}
+	cleareduser_filters    bool
+	benefit_filters        map[int]struct{}
+	removedbenefit_filters map[int]struct{}
+	clearedbenefit_filters bool
+	done                   bool
+	oldValue               func(context.Context) (*Filter, error)
+	predicates             []predicate.Filter
 }
 
 var _ ent.Mutation = (*FilterMutation)(nil)
@@ -764,6 +2152,60 @@ func (m *FilterMutation) ResetUserFilters() {
 	m.removeduser_filters = nil
 }
 
+// AddBenefitFilterIDs adds the "benefit_filters" edge to the BenefitFilter entity by ids.
+func (m *FilterMutation) AddBenefitFilterIDs(ids ...int) {
+	if m.benefit_filters == nil {
+		m.benefit_filters = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.benefit_filters[ids[i]] = struct{}{}
+	}
+}
+
+// ClearBenefitFilters clears the "benefit_filters" edge to the BenefitFilter entity.
+func (m *FilterMutation) ClearBenefitFilters() {
+	m.clearedbenefit_filters = true
+}
+
+// BenefitFiltersCleared reports if the "benefit_filters" edge to the BenefitFilter entity was cleared.
+func (m *FilterMutation) BenefitFiltersCleared() bool {
+	return m.clearedbenefit_filters
+}
+
+// RemoveBenefitFilterIDs removes the "benefit_filters" edge to the BenefitFilter entity by IDs.
+func (m *FilterMutation) RemoveBenefitFilterIDs(ids ...int) {
+	if m.removedbenefit_filters == nil {
+		m.removedbenefit_filters = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.benefit_filters, ids[i])
+		m.removedbenefit_filters[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedBenefitFilters returns the removed IDs of the "benefit_filters" edge to the BenefitFilter entity.
+func (m *FilterMutation) RemovedBenefitFiltersIDs() (ids []int) {
+	for id := range m.removedbenefit_filters {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// BenefitFiltersIDs returns the "benefit_filters" edge IDs in the mutation.
+func (m *FilterMutation) BenefitFiltersIDs() (ids []int) {
+	for id := range m.benefit_filters {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetBenefitFilters resets all changes to the "benefit_filters" edge.
+func (m *FilterMutation) ResetBenefitFilters() {
+	m.benefit_filters = nil
+	m.clearedbenefit_filters = false
+	m.removedbenefit_filters = nil
+}
+
 // Where appends a list predicates to the FilterMutation builder.
 func (m *FilterMutation) Where(ps ...predicate.Filter) {
 	m.predicates = append(m.predicates, ps...)
@@ -957,9 +2399,12 @@ func (m *FilterMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *FilterMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.user_filters != nil {
 		edges = append(edges, filter.EdgeUserFilters)
+	}
+	if m.benefit_filters != nil {
+		edges = append(edges, filter.EdgeBenefitFilters)
 	}
 	return edges
 }
@@ -974,15 +2419,24 @@ func (m *FilterMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case filter.EdgeBenefitFilters:
+		ids := make([]ent.Value, 0, len(m.benefit_filters))
+		for id := range m.benefit_filters {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *FilterMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.removeduser_filters != nil {
 		edges = append(edges, filter.EdgeUserFilters)
+	}
+	if m.removedbenefit_filters != nil {
+		edges = append(edges, filter.EdgeBenefitFilters)
 	}
 	return edges
 }
@@ -997,15 +2451,24 @@ func (m *FilterMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case filter.EdgeBenefitFilters:
+		ids := make([]ent.Value, 0, len(m.removedbenefit_filters))
+		for id := range m.removedbenefit_filters {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *FilterMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.cleareduser_filters {
 		edges = append(edges, filter.EdgeUserFilters)
+	}
+	if m.clearedbenefit_filters {
+		edges = append(edges, filter.EdgeBenefitFilters)
 	}
 	return edges
 }
@@ -1016,6 +2479,8 @@ func (m *FilterMutation) EdgeCleared(name string) bool {
 	switch name {
 	case filter.EdgeUserFilters:
 		return m.cleareduser_filters
+	case filter.EdgeBenefitFilters:
+		return m.clearedbenefit_filters
 	}
 	return false
 }
@@ -1034,6 +2499,9 @@ func (m *FilterMutation) ResetEdge(name string) error {
 	switch name {
 	case filter.EdgeUserFilters:
 		m.ResetUserFilters()
+		return nil
+	case filter.EdgeBenefitFilters:
+		m.ResetBenefitFilters()
 		return nil
 	}
 	return fmt.Errorf("unknown Filter edge %s", name)
