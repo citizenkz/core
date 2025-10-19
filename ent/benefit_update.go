@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/citizenkz/core/ent/benefit"
+	"github.com/citizenkz/core/ent/benefitcategory"
 	"github.com/citizenkz/core/ent/benefitfilter"
 	"github.com/citizenkz/core/ent/predicate"
 )
@@ -125,6 +126,21 @@ func (_u *BenefitUpdate) AddBenefitFilters(v ...*BenefitFilter) *BenefitUpdate {
 	return _u.AddBenefitFilterIDs(ids...)
 }
 
+// AddBenefitCategoryIDs adds the "benefit_categories" edge to the BenefitCategory entity by IDs.
+func (_u *BenefitUpdate) AddBenefitCategoryIDs(ids ...int) *BenefitUpdate {
+	_u.mutation.AddBenefitCategoryIDs(ids...)
+	return _u
+}
+
+// AddBenefitCategories adds the "benefit_categories" edges to the BenefitCategory entity.
+func (_u *BenefitUpdate) AddBenefitCategories(v ...*BenefitCategory) *BenefitUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddBenefitCategoryIDs(ids...)
+}
+
 // Mutation returns the BenefitMutation object of the builder.
 func (_u *BenefitUpdate) Mutation() *BenefitMutation {
 	return _u.mutation
@@ -149,6 +165,27 @@ func (_u *BenefitUpdate) RemoveBenefitFilters(v ...*BenefitFilter) *BenefitUpdat
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBenefitFilterIDs(ids...)
+}
+
+// ClearBenefitCategories clears all "benefit_categories" edges to the BenefitCategory entity.
+func (_u *BenefitUpdate) ClearBenefitCategories() *BenefitUpdate {
+	_u.mutation.ClearBenefitCategories()
+	return _u
+}
+
+// RemoveBenefitCategoryIDs removes the "benefit_categories" edge to BenefitCategory entities by IDs.
+func (_u *BenefitUpdate) RemoveBenefitCategoryIDs(ids ...int) *BenefitUpdate {
+	_u.mutation.RemoveBenefitCategoryIDs(ids...)
+	return _u
+}
+
+// RemoveBenefitCategories removes "benefit_categories" edges to BenefitCategory entities.
+func (_u *BenefitUpdate) RemoveBenefitCategories(v ...*BenefitCategory) *BenefitUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveBenefitCategoryIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -246,6 +283,51 @@ func (_u *BenefitUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(benefitfilter.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.BenefitCategoriesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   benefit.BenefitCategoriesTable,
+			Columns: []string{benefit.BenefitCategoriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(benefitcategory.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedBenefitCategoriesIDs(); len(nodes) > 0 && !_u.mutation.BenefitCategoriesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   benefit.BenefitCategoriesTable,
+			Columns: []string{benefit.BenefitCategoriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(benefitcategory.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.BenefitCategoriesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   benefit.BenefitCategoriesTable,
+			Columns: []string{benefit.BenefitCategoriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(benefitcategory.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -370,6 +452,21 @@ func (_u *BenefitUpdateOne) AddBenefitFilters(v ...*BenefitFilter) *BenefitUpdat
 	return _u.AddBenefitFilterIDs(ids...)
 }
 
+// AddBenefitCategoryIDs adds the "benefit_categories" edge to the BenefitCategory entity by IDs.
+func (_u *BenefitUpdateOne) AddBenefitCategoryIDs(ids ...int) *BenefitUpdateOne {
+	_u.mutation.AddBenefitCategoryIDs(ids...)
+	return _u
+}
+
+// AddBenefitCategories adds the "benefit_categories" edges to the BenefitCategory entity.
+func (_u *BenefitUpdateOne) AddBenefitCategories(v ...*BenefitCategory) *BenefitUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddBenefitCategoryIDs(ids...)
+}
+
 // Mutation returns the BenefitMutation object of the builder.
 func (_u *BenefitUpdateOne) Mutation() *BenefitMutation {
 	return _u.mutation
@@ -394,6 +491,27 @@ func (_u *BenefitUpdateOne) RemoveBenefitFilters(v ...*BenefitFilter) *BenefitUp
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBenefitFilterIDs(ids...)
+}
+
+// ClearBenefitCategories clears all "benefit_categories" edges to the BenefitCategory entity.
+func (_u *BenefitUpdateOne) ClearBenefitCategories() *BenefitUpdateOne {
+	_u.mutation.ClearBenefitCategories()
+	return _u
+}
+
+// RemoveBenefitCategoryIDs removes the "benefit_categories" edge to BenefitCategory entities by IDs.
+func (_u *BenefitUpdateOne) RemoveBenefitCategoryIDs(ids ...int) *BenefitUpdateOne {
+	_u.mutation.RemoveBenefitCategoryIDs(ids...)
+	return _u
+}
+
+// RemoveBenefitCategories removes "benefit_categories" edges to BenefitCategory entities.
+func (_u *BenefitUpdateOne) RemoveBenefitCategories(v ...*BenefitCategory) *BenefitUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveBenefitCategoryIDs(ids...)
 }
 
 // Where appends a list predicates to the BenefitUpdate builder.
@@ -521,6 +639,51 @@ func (_u *BenefitUpdateOne) sqlSave(ctx context.Context) (_node *Benefit, err er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(benefitfilter.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.BenefitCategoriesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   benefit.BenefitCategoriesTable,
+			Columns: []string{benefit.BenefitCategoriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(benefitcategory.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedBenefitCategoriesIDs(); len(nodes) > 0 && !_u.mutation.BenefitCategoriesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   benefit.BenefitCategoriesTable,
+			Columns: []string{benefit.BenefitCategoriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(benefitcategory.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.BenefitCategoriesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   benefit.BenefitCategoriesTable,
+			Columns: []string{benefit.BenefitCategoriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(benefitcategory.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

@@ -36,9 +36,11 @@ type Benefit struct {
 type BenefitEdges struct {
 	// BenefitFilters holds the value of the benefit_filters edge.
 	BenefitFilters []*BenefitFilter `json:"benefit_filters,omitempty"`
+	// BenefitCategories holds the value of the benefit_categories edge.
+	BenefitCategories []*BenefitCategory `json:"benefit_categories,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // BenefitFiltersOrErr returns the BenefitFilters value or an error if the edge
@@ -48,6 +50,15 @@ func (e BenefitEdges) BenefitFiltersOrErr() ([]*BenefitFilter, error) {
 		return e.BenefitFilters, nil
 	}
 	return nil, &NotLoadedError{edge: "benefit_filters"}
+}
+
+// BenefitCategoriesOrErr returns the BenefitCategories value or an error if the edge
+// was not loaded in eager-loading.
+func (e BenefitEdges) BenefitCategoriesOrErr() ([]*BenefitCategory, error) {
+	if e.loadedTypes[1] {
+		return e.BenefitCategories, nil
+	}
+	return nil, &NotLoadedError{edge: "benefit_categories"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -128,6 +139,11 @@ func (_m *Benefit) Value(name string) (ent.Value, error) {
 // QueryBenefitFilters queries the "benefit_filters" edge of the Benefit entity.
 func (_m *Benefit) QueryBenefitFilters() *BenefitFilterQuery {
 	return NewBenefitClient(_m.config).QueryBenefitFilters(_m)
+}
+
+// QueryBenefitCategories queries the "benefit_categories" edge of the Benefit entity.
+func (_m *Benefit) QueryBenefitCategories() *BenefitCategoryQuery {
+	return NewBenefitClient(_m.config).QueryBenefitCategories(_m)
 }
 
 // Update returns a builder for updating this Benefit.
