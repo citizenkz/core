@@ -11,6 +11,9 @@ import (
 	userServer "github.com/citizenkz/core/services/auth/server"
 	userStorage "github.com/citizenkz/core/services/auth/storage"
 	userUsecase "github.com/citizenkz/core/services/auth/usecase"
+	filterStorage "github.com/citizenkz/core/services/filter/storage"
+	filterUsecase "github.com/citizenkz/core/services/filter/usecase"
+	filterServer "github.com/citizenkz/core/services/filter/server"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -70,11 +73,20 @@ func (s *server) Run() error {
 	userUsecase := userUsecase.New(s.log, userStorage, s.cfg)
 	userServer := userServer.New(s.log, userUsecase)
 
+	filterStorage := filterStorage.New(s.log, client)
+	filterUsecase := filterUsecase.New(s.log, filterStorage, s.cfg)
+	filterServer := filterServer.New(s.log, filterUsecase)
+
 	router.Route("/api/v1", func(apiRouter chi.Router) {
 		apiRouter.Route("/auth", func(authRouter chi.Router) {
 			authRouter.Post("/login", userServer.HandleLogin)
 			authRouter.Post("/register", userServer.HandleRegister)
 			authRouter.Get("/profile", userServer.HandleGet)
+		})
+		apiRouter.Route("/filter", func(filterRouter chi.Router) {
+			filterRouter.Post("/", filterServer.Create)
+			filterRouter.Post("/save", filterServer.SaveUserFitlers)
+			filterRouter.Get("/", filterServer.List)
 		})
 	})
 

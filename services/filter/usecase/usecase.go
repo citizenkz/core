@@ -18,6 +18,7 @@ type usecase struct {
 type UseCase interface {
 	List(ctx context.Context, req *entity.ListRequest) (*entity.ListResponse, error)
 	SaveUserFilters(ctx context.Context, req *entity.SaveFilersRequest) (*entity.SaveFilterResponse, error)
+	Create(ctx context.Context, req *entity.CreateRequest) (*entity.CreateResponse, error)
 }
 
 func New(log *slog.Logger, storage storage.Storage, cfg *config.Config) UseCase {
