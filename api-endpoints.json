@@ -1,0 +1,454 @@
+{
+  "baseUrl": "http://localhost:8080/api/v1",
+  "endpoints": {
+    "auth": {
+      "register": {
+        "method": "POST",
+        "path": "/auth/register",
+        "description": "Register a new user account",
+        "request": {
+          "first_name": "John",
+          "last_name": "Doe",
+          "email": "aidosg65@gmail.com",
+          "password": "password123",
+          "confirm_password": "password123",
+          "birth_date": "1990-01-01T00:00:00Z"
+        },
+        "response": {
+          "profile": {
+            "id": 1,
+            "first_name": "John",
+            "last_name": "Doe",
+            "email": "aidosg65@gmail.com",
+            "birth_date": "1990-01-01T00:00:00Z"
+          },
+          "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        }
+      },
+      "login": {
+        "method": "POST",
+        "path": "/auth/login",
+        "description": "Login to existing account",
+        "request": {
+          "email": "aidosg65@gmail.com",
+          "password": "password123"
+        },
+        "response": {
+          "profile": {
+            "id": 1,
+            "first_name": "John",
+            "last_name": "Doe",
+            "email": "aidosg65@gmail.com"
+          },
+          "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        }
+      },
+      "getProfile": {
+        "method": "GET",
+        "path": "/auth/profile",
+        "description": "Get current user profile",
+        "headers": {
+          "Authorization": "Bearer <token>"
+        },
+        "response": {
+          "profile": {
+            "id": 1,
+            "first_name": "John",
+            "last_name": "Doe",
+            "email": "aidosg65@gmail.com"
+          }
+        }
+      },
+      "updatePassword": {
+        "method": "PUT",
+        "path": "/auth/password",
+        "description": "Update user password",
+        "headers": {
+          "Authorization": "Bearer <token>"
+        },
+        "request": {
+          "old_password": "password123",
+          "password": "newpassword123",
+          "confirm_password": "newpassword123"
+        },
+        "response": {
+          "profile": {
+            "id": 1,
+            "first_name": "John",
+            "last_name": "Doe",
+            "email": "aidosg65@gmail.com"
+          }
+        }
+      },
+      "updateEmail": {
+        "method": "PUT",
+        "path": "/auth/email",
+        "description": "Update user email",
+        "headers": {
+          "Authorization": "Bearer <token>"
+        },
+        "request": {
+          "email": "newemail@gmail.com",
+          "password": "password123"
+        },
+        "response": {
+          "profile": {
+            "id": 1,
+            "first_name": "John",
+            "last_name": "Doe",
+            "email": "newemail@gmail.com"
+          }
+        }
+      },
+      "deleteProfile": {
+        "method": "DELETE",
+        "path": "/auth/profile",
+        "description": "Delete user account",
+        "headers": {
+          "Authorization": "Bearer <token>"
+        },
+        "request": {
+          "password": "password123"
+        },
+        "response": {
+          "success": true
+        }
+      },
+      "forgetPassword": {
+        "method": "POST",
+        "path": "/auth/forget-password",
+        "description": "Request password reset OTP",
+        "request": {
+          "email": "aidosg65@gmail.com"
+        },
+        "response": {
+          "attempt_id": 123456,
+          "retry_time": 600
+        }
+      },
+      "forgetPasswordConfirm": {
+        "method": "POST",
+        "path": "/auth/forget-password/confirm",
+        "description": "Confirm OTP and reset password",
+        "request": {
+          "attempt_id": 123456,
+          "otp_code": "123456"
+        },
+        "response": {
+          "profile": {
+            "id": 1,
+            "first_name": "John",
+            "last_name": "Doe",
+            "email": "aidosg65@gmail.com"
+          }
+        }
+      }
+    },
+    "category": {
+      "create": {
+        "method": "POST",
+        "path": "/category/",
+        "description": "Create a new category",
+        "request": {
+          "name": "Education",
+          "description": "Educational benefits and discounts"
+        },
+        "response": {
+          "category": {
+            "id": 1,
+            "name": "Education",
+            "description": "Educational benefits and discounts"
+          }
+        }
+      },
+      "get": {
+        "method": "GET",
+        "path": "/category/{id}",
+        "description": "Get category by ID",
+        "urlParams": {
+          "id": 1
+        },
+        "response": {
+          "category": {
+            "id": 1,
+            "name": "Education",
+            "description": "Educational benefits and discounts"
+          }
+        }
+      },
+      "list": {
+        "method": "POST",
+        "path": "/category/list",
+        "description": "List categories with pagination and search",
+        "request": {
+          "limit": 10,
+          "offset": 0,
+          "search": "education"
+        },
+        "response": {
+          "categories": [
+            {
+              "id": 1,
+              "name": "Education",
+              "description": "Educational benefits and discounts"
+            }
+          ],
+          "total": 1
+        }
+      },
+      "update": {
+        "method": "PUT",
+        "path": "/category/{id}",
+        "description": "Update category",
+        "urlParams": {
+          "id": 1
+        },
+        "request": {
+          "name": "Updated Education",
+          "description": "Updated description"
+        },
+        "response": {
+          "category": {
+            "id": 1,
+            "name": "Updated Education",
+            "description": "Updated description"
+          }
+        }
+      },
+      "delete": {
+        "method": "DELETE",
+        "path": "/category/{id}",
+        "description": "Delete category",
+        "urlParams": {
+          "id": 1
+        },
+        "response": {
+          "success": true
+        }
+      }
+    },
+    "filter": {
+      "create": {
+        "method": "POST",
+        "path": "/filter/",
+        "description": "Create a new filter",
+        "request": {
+          "name": "Age Range",
+          "hint": "Enter your age",
+          "type": "NUMBER_RANGE",
+          "values": []
+        },
+        "response": {
+          "filter": {
+            "id": 1,
+            "name": "Age Range",
+            "hint": "Enter your age",
+            "type": "NUMBER_RANGE",
+            "values": []
+          }
+        }
+      },
+      "list": {
+        "method": "GET",
+        "path": "/filter/",
+        "description": "List all filters",
+        "response": {
+          "filters": [
+            {
+              "id": 1,
+              "name": "Age Range",
+              "type": "NUMBER_RANGE"
+            }
+          ]
+        }
+      },
+      "saveUserFilters": {
+        "method": "POST",
+        "path": "/filter/save",
+        "description": "Save user filter values",
+        "request": {
+          "user_id": 1,
+          "filters": [
+            {
+              "filter_id": 1,
+              "value": "25"
+            }
+          ]
+        },
+        "response": {
+          "success": true
+        }
+      }
+    },
+    "benefit": {
+      "create": {
+        "method": "POST",
+        "path": "/benefit/",
+        "description": "Create a new benefit with filters and categories",
+        "request": {
+          "title": "Student Discount",
+          "content": "Get 20% off on all purchases",
+          "bonus": "Extra 5% on weekends",
+          "video_url": "https://example.com/video.mp4",
+          "source_url": "https://example.com/source",
+          "filters": [
+            {
+              "filter_id": 1,
+              "value": "student"
+            },
+            {
+              "filter_id": 2,
+              "from": "18",
+              "to": "25"
+            }
+          ],
+          "categories": [1, 2]
+        },
+        "response": {
+          "benefit": {
+            "id": 1,
+            "title": "Student Discount",
+            "content": "Get 20% off on all purchases",
+            "bonus": "Extra 5% on weekends",
+            "video_url": "https://example.com/video.mp4",
+            "source_url": "https://example.com/source",
+            "filters": [
+              {
+                "id": 1,
+                "filter_id": 1,
+                "value": "student"
+              }
+            ],
+            "categories": [
+              {
+                "id": 1,
+                "name": "Education"
+              }
+            ]
+          }
+        }
+      },
+      "get": {
+        "method": "GET",
+        "path": "/benefit/{id}",
+        "description": "Get benefit by ID with filters and categories",
+        "urlParams": {
+          "id": 1
+        },
+        "response": {
+          "benefit": {
+            "id": 1,
+            "title": "Student Discount",
+            "content": "Get 20% off on all purchases",
+            "filters": [],
+            "categories": []
+          }
+        }
+      },
+      "list": {
+        "method": "POST",
+        "path": "/benefit/list",
+        "description": "List benefits with filters, pagination and search. Benefits without filter values or matching filter values are shown.",
+        "request": {
+          "limit": 10,
+          "offset": 0,
+          "search": "student",
+          "filters": [
+            {
+              "filter_id": 1,
+              "value": "student"
+            },
+            {
+              "filter_id": 2,
+              "from": "18",
+              "to": "25"
+            }
+          ]
+        },
+        "response": {
+          "benefits": [
+            {
+              "id": 1,
+              "title": "Student Discount",
+              "content": "Get 20% off on all purchases",
+              "filters": [],
+              "categories": []
+            }
+          ],
+          "total": 1
+        }
+      },
+      "update": {
+        "method": "PUT",
+        "path": "/benefit/{id}",
+        "description": "Update benefit (replaces all filters and categories)",
+        "urlParams": {
+          "id": 1
+        },
+        "request": {
+          "title": "Updated Student Discount",
+          "content": "Get 25% off on all purchases",
+          "bonus": "Extra 10% on weekends",
+          "filters": [
+            {
+              "filter_id": 1,
+              "value": "student"
+            }
+          ],
+          "categories": [1]
+        },
+        "response": {
+          "benefit": {
+            "id": 1,
+            "title": "Updated Student Discount",
+            "content": "Get 25% off on all purchases",
+            "filters": [],
+            "categories": []
+          }
+        }
+      },
+      "delete": {
+        "method": "DELETE",
+        "path": "/benefit/{id}",
+        "description": "Delete benefit (cascades to filters and categories)",
+        "urlParams": {
+          "id": 1
+        },
+        "response": {
+          "success": true
+        }
+      }
+    }
+  },
+  "filterTypes": {
+    "STRING_RANGE": {
+      "description": "Single value filter (e.g., status, category)",
+      "example": {
+        "filter_id": 1,
+        "value": "student"
+      }
+    },
+    "NUMBER_RANGE": {
+      "description": "Numeric range filter (e.g., age 18-25)",
+      "example": {
+        "filter_id": 2,
+        "from": "18",
+        "to": "25"
+      }
+    },
+    "DATE_RANGE": {
+      "description": "Date range filter (e.g., valid from-to dates)",
+      "example": {
+        "filter_id": 3,
+        "from": "2024-01-01",
+        "to": "2024-12-31"
+      }
+    }
+  },
+  "notes": {
+    "authentication": "Most auth endpoints require Bearer token in Authorization header",
+    "benefitFiltering": "Benefits are shown if they don't have a filter OR if they have matching filter values",
+    "emailNotifications": "Email notifications are sent for password changes, email changes, account deletion, and password reset OTPs",
+    "otpExpiry": "OTP codes expire after 10 minutes (600 seconds)"
+  }
+}

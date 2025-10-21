@@ -11,9 +11,15 @@ import (
 	userServer "github.com/citizenkz/core/services/auth/server"
 	userStorage "github.com/citizenkz/core/services/auth/storage"
 	userUsecase "github.com/citizenkz/core/services/auth/usecase"
+	benefitServer "github.com/citizenkz/core/services/benefit/server"
+	benefitStorage "github.com/citizenkz/core/services/benefit/storage"
+	benefitUsecase "github.com/citizenkz/core/services/benefit/usecase"
+	categoryServer "github.com/citizenkz/core/services/category/server"
+	categoryStorage "github.com/citizenkz/core/services/category/storage"
+	categoryUsecase "github.com/citizenkz/core/services/category/usecase"
+	filterServer "github.com/citizenkz/core/services/filter/server"
 	filterStorage "github.com/citizenkz/core/services/filter/storage"
 	filterUsecase "github.com/citizenkz/core/services/filter/usecase"
-	filterServer "github.com/citizenkz/core/services/filter/server"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -77,16 +83,43 @@ func (s *server) Run() error {
 	filterUsecase := filterUsecase.New(s.log, filterStorage, s.cfg)
 	filterServer := filterServer.New(s.log, filterUsecase)
 
+	categoryStorage := categoryStorage.New(client, s.log)
+	categoryUsecase := categoryUsecase.New(s.log, categoryStorage, s.cfg)
+	categoryServer := categoryServer.New(s.log, categoryUsecase)
+
+	benefitStorage := benefitStorage.New(client, s.log)
+	benefitUsecase := benefitUsecase.New(s.log, benefitStorage, s.cfg)
+	benefitServer := benefitServer.New(s.log, benefitUsecase)
+
 	router.Route("/api/v1", func(apiRouter chi.Router) {
 		apiRouter.Route("/auth", func(authRouter chi.Router) {
 			authRouter.Post("/login", userServer.HandleLogin)
 			authRouter.Post("/register", userServer.HandleRegister)
 			authRouter.Get("/profile", userServer.HandleGet)
+			authRouter.Put("/password", userServer.HandleUpdatePassword)
+			authRouter.Put("/email", userServer.HandleUpdateEmail)
+			authRouter.Delete("/profile", userServer.HandleDelete)
+			authRouter.Post("/forget-password", userServer.HandleForgetPassword)
+			authRouter.Post("/forget-password/confirm", userServer.HandleForgetPasswordConfirm)
 		})
 		apiRouter.Route("/filter", func(filterRouter chi.Router) {
 			filterRouter.Post("/", filterServer.Create)
 			filterRouter.Post("/save", filterServer.SaveUserFitlers)
 			filterRouter.Get("/", filterServer.List)
+		})
+		apiRouter.Route("/category", func(categoryRouter chi.Router) {
+			categoryRouter.Post("/", categoryServer.HandleCreate)
+			categoryRouter.Post("/list", categoryServer.HandleList)
+			categoryRouter.Get("/{id}", categoryServer.HandleGet)
+			categoryRouter.Put("/{id}", categoryServer.HandleUpdate)
+			categoryRouter.Delete("/{id}", categoryServer.HandleDelete)
+		})
+		apiRouter.Route("/benefit", func(benefitRouter chi.Router) {
+			benefitRouter.Post("/", benefitServer.HandleCreate)
+			benefitRouter.Post("/list", benefitServer.HandleList)
+			benefitRouter.Get("/{id}", benefitServer.HandleGet)
+			benefitRouter.Put("/{id}", benefitServer.HandleUpdate)
+			benefitRouter.Delete("/{id}", benefitServer.HandleDelete)
 		})
 	})
 

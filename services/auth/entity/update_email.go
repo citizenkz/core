@@ -2,6 +2,7 @@ package entity
 
 type (
 	UpdateEmailRequest struct {
+		Token    string `json:"-"`
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
