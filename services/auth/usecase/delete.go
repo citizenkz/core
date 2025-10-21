@@ -10,7 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (u *usecase) UpdateEmail(ctx context.Context, req *entity.UpdateEmailRequest) (*entity.UpdateEmailResponse, error) {
+func (u *usecase) Delete(ctx context.Context, req *entity.DeleteRequest) (*entity.DeleteResponse, error) {
 	// Parse user ID from token
 	userID, err := jwt.ParseUserID(ctx, req.Token, u.cfg.JwtSecret)
 	if err != nil {
@@ -31,25 +31,19 @@ func (u *usecase) UpdateEmail(ctx context.Context, req *entity.UpdateEmailReques
 		return nil, fmt.Errorf("incorrect password")
 	}
 
-	oldEmail := user.Email
-
-	// Update email
-	updatedUser, err := u.storage.UpdateUserEmail(ctx, userID, req.Email)
-	if err != nil {
-		u.log.Error("failed to storage.UpdateUserEmail", slog.String("error", err.Error()))
-		return nil, fmt.Errorf("failed to update email: %w", err)
+	// Delete user
+	if err := u.storage.DeleteUser(ctx, userID); err != nil {
+		u.log.Error("failed to storage.DeleteUser", slog.String("error", err.Error()))
+		return nil, fmt.Errorf("failed to delete user: %w", err)
 	}
 
-	// Send confirmation emails to both old and new addresses
-	if err := u.emailService.SendEmailChanged(oldEmail, req.Email); err != nil {
-		u.log.Error("failed to send email changed notification to old address", slog.String("error", err.Error()))
+	// Send confirmation email
+	if err := u.emailService.SendAccountDeleted(user.Email); err != nil {
+		u.log.Error("failed to send account deleted email", slog.String("error", err.Error()))
+		// Continue even if email fails
 	}
 
-	if err := u.emailService.SendEmailChanged(req.Email, req.Email); err != nil {
-		u.log.Error("failed to send email changed notification to new address", slog.String("error", err.Error()))
-	}
-
-	return &entity.UpdateEmailResponse{
-		Profile: *updatedUser,
+	return &entity.DeleteResponse{
+		Success: true,
 	}, nil
 }

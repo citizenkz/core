@@ -13,6 +13,7 @@ type Config struct {
 	Database  DatabaseConfig `yaml:"database"`
 	Port      int            `yaml:"port" env-default:"8080" env:"PORT"`
 	JwtSecret string         `yaml:"jwtsecret" env:"JWT_SECRET"`
+	SMTP      SMTPConfig     `yaml:"smtp"`
 }
 
 type DatabaseConfig struct {
@@ -22,6 +23,14 @@ type DatabaseConfig struct {
 	Name     string `yaml:"name" env:"DB_NAME"`
 	Port     int    `yaml:"port" env:"DB_PORT"`
 	SSLMode  string `yaml:"sslmode" env:"DB_SSLMODE"`
+}
+
+type SMTPConfig struct {
+	Host     string `yaml:"host" env:"SMTP_HOST" env-default:"smtp.gmail.com"`
+	Port     int    `yaml:"port" env:"SMTP_PORT" env-default:"587"`
+	Username string `yaml:"username" env:"SMTP_USERNAME"`
+	Password string `yaml:"password" env:"SMTP_PASSWORD"`
+	From     string `yaml:"from" env:"SMTP_FROM"`
 }
 
 func MustLoad() *Config {
