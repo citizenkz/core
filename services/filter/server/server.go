@@ -35,26 +35,32 @@ func (s *server) List(w http.ResponseWriter, r *http.Request) {
 	rawLimit := queryParam.Get("limit")
 	rawOffset := queryParam.Get("offset")
 
-	limit, err := strconv.Atoi(rawLimit)
-	if err != nil {
-		s.log.Error("failed to strconv.Atoi", slog.String("error", err.Error()))
-		json.WriteError(w, http.StatusBadRequest, err)
-		return
+	// Default values
+	limit := 100
+	offset := 0
+
+	if rawLimit != "" {
+		var err error
+		limit, err = strconv.Atoi(rawLimit)
+		if err != nil {
+			s.log.Error("failed to strconv.Atoi", slog.String("error", err.Error()))
+			json.WriteError(w, http.StatusBadRequest, err)
+			return
+		}
 	}
 
-	offset, err := strconv.Atoi(rawOffset)
-	if err != nil {
-		s.log.Error("failed to strconv.Atoi", slog.String("error", err.Error()))
-		json.WriteError(w, http.StatusBadRequest, err)
-		return
+	if rawOffset != "" {
+		var err error
+		offset, err = strconv.Atoi(rawOffset)
+		if err != nil {
+			s.log.Error("failed to strconv.Atoi", slog.String("error", err.Error()))
+			json.WriteError(w, http.StatusBadRequest, err)
+			return
+		}
 	}
 
-	token, err := jwt.ParseTokenFromHeader(r)
-	if err != nil {
-		s.log.Error("failed to jwt.ParseTokenFromHeader", slog.String("error", err.Error()))
-		json.WriteError(w, http.StatusUnauthorized, err)
-		return
-	}
+	// Try to parse token from header (optional)
+	token, _ := jwt.ParseTokenFromHeader(r)
 
 	req := &entity.ListRequest{
 		Token:       token,

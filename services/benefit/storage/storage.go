@@ -335,9 +335,44 @@ func (s *storage) UpdateBenefit(ctx context.Context, req *entity.UpdateRequest) 
 }
 
 func (s *storage) DeleteBenefit(ctx context.Context, id int) error {
-	err := s.client.Benefit.DeleteOneID(id).Exec(ctx)
+	// Start a transaction to delete benefit and its relations
+	tx, err := s.client.Tx(ctx)
+	if err != nil {
+		s.log.Error("failed to start transaction", slog.String("error", err.Error()))
+		return err
+	}
+
+	// Delete benefit filters
+	_, err = tx.BenefitFilter.Delete().
+		Where(benefitfilter.BenefitID(id)).
+		Exec(ctx)
+	if err != nil {
+		s.log.Error("failed to delete benefit filters", slog.String("error", err.Error()))
+		tx.Rollback()
+		return err
+	}
+
+	// Delete benefit categories (junction table records)
+	_, err = tx.BenefitCategory.Delete().
+		Where(benefitcategory.BenefitID(id)).
+		Exec(ctx)
+	if err != nil {
+		s.log.Error("failed to delete benefit categories", slog.String("error", err.Error()))
+		tx.Rollback()
+		return err
+	}
+
+	// Delete the benefit itself
+	err = tx.Benefit.DeleteOneID(id).Exec(ctx)
 	if err != nil {
 		s.log.Error("failed to delete benefit", slog.String("error", err.Error()))
+		tx.Rollback()
+		return err
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		s.log.Error("failed to commit transaction", slog.String("error", err.Error()))
 		return err
 	}
 

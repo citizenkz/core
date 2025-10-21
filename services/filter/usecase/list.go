@@ -16,7 +16,7 @@ func (u *usecase) List(ctx context.Context, req *entity.ListRequest) (*entity.Li
 		return nil, fmt.Errorf("failed to storage.List: %w", err)
 	}
 
-	if req.Token != ""{
+	if req.Token != "" {
 		userID, err := jwt.ParseUserID(ctx, req.Token, u.cfg.JwtSecret)
 		if err != nil {
 			u.log.Error("failed to jwtp.ParseUserID", slog.String("error", err.Error()))

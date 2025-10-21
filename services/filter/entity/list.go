@@ -9,6 +9,6 @@ type (
 	}
 
 	ListResponse struct {
-		Filters []*Filter `json:"filter"`
+		Filters []*Filter `json:"filters"`
 	}
 )
