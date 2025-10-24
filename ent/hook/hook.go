@@ -69,6 +69,30 @@ func (f CategoryFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, er
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.CategoryMutation", m)
 }
 
+// The ChildFunc type is an adapter to allow the use of ordinary
+// function as Child mutator.
+type ChildFunc func(context.Context, *ent.ChildMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChildFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ChildMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ChildMutation", m)
+}
+
+// The ChildFilterFunc type is an adapter to allow the use of ordinary
+// function as ChildFilter mutator.
+type ChildFilterFunc func(context.Context, *ent.ChildFilterMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChildFilterFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ChildFilterMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ChildFilterMutation", m)
+}
+
 // The FilterFunc type is an adapter to allow the use of ordinary
 // function as Filter mutator.
 type FilterFunc func(context.Context, *ent.FilterMutation) (ent.Value, error)

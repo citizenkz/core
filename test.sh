@@ -319,12 +319,136 @@ else
 fi
 
 # ============================================
+# CHILD ENDPOINTS
+# ============================================
+
+echo -e "\n${YELLOW}═══════════════ CHILD ENDPOINTS ═══════════════${NC}\n"
+
+# Test 15: Create Child
+print_test "POST /child/ - Create child"
+CHILD_RESPONSE=$(curl -s -X POST "$BASE_URL/child/" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"first_name\": \"Emma\",
+    \"last_name\": \"User\",
+    \"birth_date\": \"2015-05-15T00:00:00Z\"
+  }")
+
+CHILD_ID=$(extract_json "$CHILD_RESPONSE" '.child.id')
+if [ ! -z "$CHILD_ID" ] && [ "$CHILD_ID" != "null" ]; then
+    print_success "Child created successfully"
+    print_response "$CHILD_RESPONSE"
+else
+    print_error "Failed to create child"
+    print_response "$CHILD_RESPONSE"
+fi
+
+# Test 16: Create Second Child
+print_test "POST /child/ - Create second child"
+CHILD2_RESPONSE=$(curl -s -X POST "$BASE_URL/child/" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"first_name\": \"Oliver\",
+    \"last_name\": \"User\",
+    \"birth_date\": \"2018-08-20T00:00:00Z\"
+  }")
+
+CHILD2_ID=$(extract_json "$CHILD2_RESPONSE" '.child.id')
+if [ ! -z "$CHILD2_ID" ] && [ "$CHILD2_ID" != "null" ]; then
+    print_success "Second child created successfully"
+    print_response "$CHILD2_RESPONSE"
+else
+    print_error "Failed to create second child"
+    print_response "$CHILD2_RESPONSE"
+fi
+
+# Test 17: List Children
+print_test "POST /child/list - List all children"
+CHILDREN_LIST=$(curl -s -X POST "$BASE_URL/child/list" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"limit\": 10,
+    \"offset\": 0
+  }")
+
+TOTAL_CHILDREN=$(extract_json "$CHILDREN_LIST" '.total')
+if [ ! -z "$TOTAL_CHILDREN" ] && [ "$TOTAL_CHILDREN" != "null" ]; then
+    print_success "Children listed (total: $TOTAL_CHILDREN)"
+    print_response "$CHILDREN_LIST"
+else
+    print_error "Failed to list children"
+    print_response "$CHILDREN_LIST"
+fi
+
+# Test 18: Get Child
+print_test "GET /child/$CHILD_ID - Get child by ID"
+GET_CHILD=$(curl -s -X GET "$BASE_URL/child/$CHILD_ID" \
+  -H "Authorization: Bearer $TOKEN")
+
+if echo "$GET_CHILD" | grep -q "Emma"; then
+    print_success "Child retrieved successfully"
+    print_response "$GET_CHILD"
+else
+    print_error "Failed to get child"
+    print_response "$GET_CHILD"
+fi
+
+# Test 19: Update Child
+print_test "PUT /child/$CHILD_ID - Update child"
+UPDATE_CHILD=$(curl -s -X PUT "$BASE_URL/child/$CHILD_ID" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"first_name\": \"Emily\",
+    \"last_name\": \"User\",
+    \"birth_date\": \"2015-05-15T00:00:00Z\"
+  }")
+
+if echo "$UPDATE_CHILD" | grep -q "Emily"; then
+    print_success "Child updated successfully"
+    print_response "$UPDATE_CHILD"
+else
+    print_error "Failed to update child"
+    print_response "$UPDATE_CHILD"
+fi
+
+# Test 20: Save Child Filters
+print_test "POST /child/filters - Save filters for child"
+SAVE_CHILD_FILTERS=$(curl -s -X POST "$BASE_URL/child/filters" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"child_id\": $CHILD_ID,
+    \"filters\": [
+      {
+        \"filter_id\": $FILTER_ID,
+        \"value\": \"10\"
+      },
+      {
+        \"filter_id\": $FILTER2_ID,
+        \"value\": \"student\"
+      }
+    ]
+  }")
+
+if echo "$SAVE_CHILD_FILTERS" | grep -q "true"; then
+    print_success "Child filters saved successfully"
+    print_response "$SAVE_CHILD_FILTERS"
+else
+    print_error "Failed to save child filters"
+    print_response "$SAVE_CHILD_FILTERS"
+fi
+
+# ============================================
 # BENEFIT ENDPOINTS
 # ============================================
 
 echo -e "\n${YELLOW}═══════════════ BENEFIT ENDPOINTS ═══════════════${NC}\n"
 
-# Test 15: Create Benefit
+# Test 21: Create Benefit
 print_test "POST /benefit/ - Create benefit with filters and categories"
 BENEFIT_RESPONSE=$(curl -s -X POST "$BASE_URL/benefit/" \
   -H "Content-Type: application/json" \
@@ -357,7 +481,7 @@ else
     print_response "$BENEFIT_RESPONSE"
 fi
 
-# Test 16: Create Benefit without filters
+# Test 22: Create Benefit without filters
 print_test "POST /benefit/ - Create benefit without filters"
 BENEFIT2_RESPONSE=$(curl -s -X POST "$BASE_URL/benefit/" \
   -H "Content-Type: application/json" \
@@ -378,7 +502,7 @@ else
     print_response "$BENEFIT2_RESPONSE"
 fi
 
-# Test 17: Get Benefit
+# Test 23: Get Benefit
 print_test "GET /benefit/$BENEFIT_ID - Get benefit by ID"
 GET_BENEFIT=$(curl -s -X GET "$BASE_URL/benefit/$BENEFIT_ID")
 
@@ -390,7 +514,7 @@ else
     print_response "$GET_BENEFIT"
 fi
 
-# Test 18: List Benefits (no filters)
+# Test 24: List Benefits (no filters)
 print_test "POST /benefit/list - List all benefits"
 LIST_BENEFITS=$(curl -s -X POST "$BASE_URL/benefit/list" \
   -H "Content-Type: application/json" \
@@ -410,7 +534,7 @@ else
     print_response "$LIST_BENEFITS"
 fi
 
-# Test 19: List Benefits with matching filter
+# Test 25: List Benefits with matching filter
 print_test "POST /benefit/list - List benefits with matching filter"
 LIST_FILTERED=$(curl -s -X POST "$BASE_URL/benefit/list" \
   -H "Content-Type: application/json" \
@@ -435,7 +559,7 @@ else
     print_response "$LIST_FILTERED"
 fi
 
-# Test 20: List Benefits with search
+# Test 26: List Benefits with search
 print_test "POST /benefit/list - Search benefits"
 SEARCH_BENEFITS=$(curl -s -X POST "$BASE_URL/benefit/list" \
   -H "Content-Type: application/json" \
@@ -455,7 +579,7 @@ else
     print_response "$SEARCH_BENEFITS"
 fi
 
-# Test 21: Update Benefit
+# Test 27: Update Benefit
 print_test "PUT /benefit/$BENEFIT_ID - Update benefit"
 UPDATE_BENEFIT=$(curl -s -X PUT "$BASE_URL/benefit/$BENEFIT_ID" \
   -H "Content-Type: application/json" \
@@ -486,7 +610,7 @@ fi
 
 echo -e "\n${YELLOW}═══════════════ CLEANUP TESTS ═══════════════${NC}\n"
 
-# Test 22: Delete Benefit
+# Test 28: Delete Benefit
 print_test "DELETE /benefit/$BENEFIT_ID - Delete benefit"
 DELETE_BENEFIT=$(curl -s -X DELETE "$BASE_URL/benefit/$BENEFIT_ID")
 
@@ -498,7 +622,7 @@ else
     print_response "$DELETE_BENEFIT"
 fi
 
-# Test 23: Delete Second Benefit
+# Test 29: Delete Second Benefit
 print_test "DELETE /benefit/$BENEFIT2_ID - Delete second benefit"
 DELETE_BENEFIT2=$(curl -s -X DELETE "$BASE_URL/benefit/$BENEFIT2_ID")
 
@@ -510,7 +634,33 @@ else
     print_response "$DELETE_BENEFIT2"
 fi
 
-# Test 24: Delete Category
+# Test 30: Delete Child
+print_test "DELETE /child/$CHILD_ID - Delete child"
+DELETE_CHILD=$(curl -s -X DELETE "$BASE_URL/child/$CHILD_ID" \
+  -H "Authorization: Bearer $TOKEN")
+
+if echo "$DELETE_CHILD" | grep -q "true"; then
+    print_success "Child deleted successfully"
+    print_response "$DELETE_CHILD"
+else
+    print_error "Failed to delete child"
+    print_response "$DELETE_CHILD"
+fi
+
+# Test 31: Delete Second Child
+print_test "DELETE /child/$CHILD2_ID - Delete second child"
+DELETE_CHILD2=$(curl -s -X DELETE "$BASE_URL/child/$CHILD2_ID" \
+  -H "Authorization: Bearer $TOKEN")
+
+if echo "$DELETE_CHILD2" | grep -q "true"; then
+    print_success "Second child deleted successfully"
+    print_response "$DELETE_CHILD2"
+else
+    print_error "Failed to delete second child"
+    print_response "$DELETE_CHILD2"
+fi
+
+# Test 32: Delete Category
 print_test "DELETE /category/$CATEGORY_ID - Delete category"
 DELETE_CATEGORY=$(curl -s -X DELETE "$BASE_URL/category/$CATEGORY_ID")
 
@@ -522,7 +672,7 @@ else
     print_response "$DELETE_CATEGORY"
 fi
 
-# Test 25: Delete Second Category
+# Test 33: Delete Second Category
 print_test "DELETE /category/$CATEGORY2_ID - Delete second category"
 DELETE_CATEGORY2=$(curl -s -X DELETE "$BASE_URL/category/$CATEGORY2_ID")
 
@@ -534,7 +684,7 @@ else
     print_response "$DELETE_CATEGORY2"
 fi
 
-# Test 26: Delete Profile (last test)
+# Test 34: Delete Profile (last test)
 print_test "DELETE /auth/profile - Delete user account"
 DELETE_PROFILE=$(curl -s -X DELETE "$BASE_URL/auth/profile" \
   -H "Authorization: Bearer $TOKEN" \

@@ -10,6 +10,7 @@ A comprehensive REST API for managing citizen benefits, categories, filters, and
 - 🏷️ **Categories** - Organize benefits by categories
 - 🔍 **Filters** - Advanced filtering with range support (string, number, date)
 - 👤 **User Profile** - Complete profile management including email/password updates
+- 👶 **Children Management** - Users can manage multiple children with individual filter preferences
 
 ## Technology Stack
 
@@ -114,6 +115,17 @@ Complete API documentation is available in [`api-endpoints.json`](./api-endpoint
 | GET | `/benefit/{id}` | Get benefit | No |
 | PUT | `/benefit/{id}` | Update benefit | No |
 | DELETE | `/benefit/{id}` | Delete benefit | No |
+
+### Child Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/child/` | Create child | Yes |
+| POST | `/child/list` | List user's children | Yes |
+| GET | `/child/{id}` | Get child details | Yes |
+| PUT | `/child/{id}` | Update child | Yes |
+| DELETE | `/child/{id}` | Delete child | Yes |
+| POST | `/child/filters` | Save child filters | Yes |
 
 ## Filter Types
 

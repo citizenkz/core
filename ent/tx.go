@@ -22,6 +22,10 @@ type Tx struct {
 	BenefitFilter *BenefitFilterClient
 	// Category is the client for interacting with the Category builders.
 	Category *CategoryClient
+	// Child is the client for interacting with the Child builders.
+	Child *ChildClient
+	// ChildFilter is the client for interacting with the ChildFilter builders.
+	ChildFilter *ChildFilterClient
 	// Filter is the client for interacting with the Filter builders.
 	Filter *FilterClient
 	// User is the client for interacting with the User builders.
@@ -164,6 +168,8 @@ func (tx *Tx) init() {
 	tx.BenefitCategory = NewBenefitCategoryClient(tx.config)
 	tx.BenefitFilter = NewBenefitFilterClient(tx.config)
 	tx.Category = NewCategoryClient(tx.config)
+	tx.Child = NewChildClient(tx.config)
+	tx.ChildFilter = NewChildFilterClient(tx.config)
 	tx.Filter = NewFilterClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 	tx.UserFilter = NewUserFilterClient(tx.config)

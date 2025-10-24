@@ -418,6 +418,129 @@
           "success": true
         }
       }
+    },
+    "child": {
+      "create": {
+        "method": "POST",
+        "path": "/child/",
+        "description": "Create a new child for the authenticated user",
+        "requiresAuth": true,
+        "request": {
+          "first_name": "Emma",
+          "last_name": "Doe",
+          "birth_date": "2015-05-15T00:00:00Z"
+        },
+        "response": {
+          "child": {
+            "id": 1,
+            "first_name": "Emma",
+            "last_name": "Doe",
+            "birth_date": "2015-05-15T00:00:00Z",
+            "user_id": 1,
+            "created_at": "2025-10-24T12:00:00Z"
+          }
+        }
+      },
+      "list": {
+        "method": "POST",
+        "path": "/child/list",
+        "description": "List all children of the authenticated user with pagination",
+        "requiresAuth": true,
+        "request": {
+          "limit": 10,
+          "offset": 0
+        },
+        "response": {
+          "children": [
+            {
+              "id": 1,
+              "first_name": "Emma",
+              "last_name": "Doe",
+              "birth_date": "2015-05-15T00:00:00Z",
+              "user_id": 1,
+              "created_at": "2025-10-24T12:00:00Z"
+            }
+          ],
+          "total": 1
+        }
+      },
+      "get": {
+        "method": "GET",
+        "path": "/child/{id}",
+        "description": "Get a specific child by ID (must belong to authenticated user)",
+        "requiresAuth": true,
+        "urlParams": {
+          "id": 1
+        },
+        "response": {
+          "child": {
+            "id": 1,
+            "first_name": "Emma",
+            "last_name": "Doe",
+            "birth_date": "2015-05-15T00:00:00Z",
+            "user_id": 1,
+            "created_at": "2025-10-24T12:00:00Z"
+          }
+        }
+      },
+      "update": {
+        "method": "PUT",
+        "path": "/child/{id}",
+        "description": "Update child information (must belong to authenticated user)",
+        "requiresAuth": true,
+        "urlParams": {
+          "id": 1
+        },
+        "request": {
+          "first_name": "Emily",
+          "last_name": "Smith",
+          "birth_date": "2015-05-15T00:00:00Z"
+        },
+        "response": {
+          "child": {
+            "id": 1,
+            "first_name": "Emily",
+            "last_name": "Smith",
+            "birth_date": "2015-05-15T00:00:00Z",
+            "user_id": 1,
+            "created_at": "2025-10-24T12:00:00Z"
+          }
+        }
+      },
+      "delete": {
+        "method": "DELETE",
+        "path": "/child/{id}",
+        "description": "Delete child and all associated filters (must belong to authenticated user)",
+        "requiresAuth": true,
+        "urlParams": {
+          "id": 1
+        },
+        "response": {
+          "success": true
+        }
+      },
+      "saveFilters": {
+        "method": "POST",
+        "path": "/child/filters",
+        "description": "Save filter values for a specific child (replaces all existing filters)",
+        "requiresAuth": true,
+        "request": {
+          "child_id": 1,
+          "filters": [
+            {
+              "filter_id": 1,
+              "value": "18"
+            },
+            {
+              "filter_id": 2,
+              "value": "student"
+            }
+          ]
+        },
+        "response": {
+          "success": true
+        }
+      }
     }
   },
   "filterTypes": {

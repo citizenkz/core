@@ -16,6 +16,8 @@ import (
 	"github.com/citizenkz/core/ent/benefitcategory"
 	"github.com/citizenkz/core/ent/benefitfilter"
 	"github.com/citizenkz/core/ent/category"
+	"github.com/citizenkz/core/ent/child"
+	"github.com/citizenkz/core/ent/childfilter"
 	"github.com/citizenkz/core/ent/filter"
 	"github.com/citizenkz/core/ent/predicate"
 	"github.com/citizenkz/core/ent/user"
@@ -37,6 +39,8 @@ const (
 	TypeBenefitCategory = "BenefitCategory"
 	TypeBenefitFilter   = "BenefitFilter"
 	TypeCategory        = "Category"
+	TypeChild           = "Child"
+	TypeChildFilter     = "ChildFilter"
 	TypeFilter          = "Filter"
 	TypeUser            = "User"
 	TypeUserFilter      = "UserFilter"
@@ -2870,6 +2874,1227 @@ func (m *CategoryMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown Category edge %s", name)
 }
 
+// ChildMutation represents an operation that mutates the Child nodes in the graph.
+type ChildMutation struct {
+	config
+	op                   Op
+	typ                  string
+	id                   *int
+	first_name           *string
+	last_name            *string
+	birth_date           *time.Time
+	created_at           *time.Time
+	clearedFields        map[string]struct{}
+	user                 *int
+	cleareduser          bool
+	child_filters        map[int]struct{}
+	removedchild_filters map[int]struct{}
+	clearedchild_filters bool
+	done                 bool
+	oldValue             func(context.Context) (*Child, error)
+	predicates           []predicate.Child
+}
+
+var _ ent.Mutation = (*ChildMutation)(nil)
+
+// childOption allows management of the mutation configuration using functional options.
+type childOption func(*ChildMutation)
+
+// newChildMutation creates new mutation for the Child entity.
+func newChildMutation(c config, op Op, opts ...childOption) *ChildMutation {
+	m := &ChildMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeChild,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withChildID sets the ID field of the mutation.
+func withChildID(id int) childOption {
+	return func(m *ChildMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Child
+		)
+		m.oldValue = func(ctx context.Context) (*Child, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Child.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withChild sets the old Child of the mutation.
+func withChild(node *Child) childOption {
+	return func(m *ChildMutation) {
+		m.oldValue = func(context.Context) (*Child, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ChildMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ChildMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ChildMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ChildMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Child.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetFirstName sets the "first_name" field.
+func (m *ChildMutation) SetFirstName(s string) {
+	m.first_name = &s
+}
+
+// FirstName returns the value of the "first_name" field in the mutation.
+func (m *ChildMutation) FirstName() (r string, exists bool) {
+	v := m.first_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFirstName returns the old "first_name" field's value of the Child entity.
+// If the Child object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChildMutation) OldFirstName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFirstName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFirstName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFirstName: %w", err)
+	}
+	return oldValue.FirstName, nil
+}
+
+// ResetFirstName resets all changes to the "first_name" field.
+func (m *ChildMutation) ResetFirstName() {
+	m.first_name = nil
+}
+
+// SetLastName sets the "last_name" field.
+func (m *ChildMutation) SetLastName(s string) {
+	m.last_name = &s
+}
+
+// LastName returns the value of the "last_name" field in the mutation.
+func (m *ChildMutation) LastName() (r string, exists bool) {
+	v := m.last_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastName returns the old "last_name" field's value of the Child entity.
+// If the Child object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChildMutation) OldLastName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastName: %w", err)
+	}
+	return oldValue.LastName, nil
+}
+
+// ResetLastName resets all changes to the "last_name" field.
+func (m *ChildMutation) ResetLastName() {
+	m.last_name = nil
+}
+
+// SetBirthDate sets the "birth_date" field.
+func (m *ChildMutation) SetBirthDate(t time.Time) {
+	m.birth_date = &t
+}
+
+// BirthDate returns the value of the "birth_date" field in the mutation.
+func (m *ChildMutation) BirthDate() (r time.Time, exists bool) {
+	v := m.birth_date
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBirthDate returns the old "birth_date" field's value of the Child entity.
+// If the Child object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChildMutation) OldBirthDate(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBirthDate is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBirthDate requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBirthDate: %w", err)
+	}
+	return oldValue.BirthDate, nil
+}
+
+// ResetBirthDate resets all changes to the "birth_date" field.
+func (m *ChildMutation) ResetBirthDate() {
+	m.birth_date = nil
+}
+
+// SetUserID sets the "user_id" field.
+func (m *ChildMutation) SetUserID(i int) {
+	m.user = &i
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *ChildMutation) UserID() (r int, exists bool) {
+	v := m.user
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the Child entity.
+// If the Child object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChildMutation) OldUserID(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *ChildMutation) ResetUserID() {
+	m.user = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ChildMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ChildMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the Child entity.
+// If the Child object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChildMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ChildMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (m *ChildMutation) ClearUser() {
+	m.cleareduser = true
+	m.clearedFields[child.FieldUserID] = struct{}{}
+}
+
+// UserCleared reports if the "user" edge to the User entity was cleared.
+func (m *ChildMutation) UserCleared() bool {
+	return m.cleareduser
+}
+
+// UserIDs returns the "user" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// UserID instead. It exists only for internal usage by the builders.
+func (m *ChildMutation) UserIDs() (ids []int) {
+	if id := m.user; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetUser resets all changes to the "user" edge.
+func (m *ChildMutation) ResetUser() {
+	m.user = nil
+	m.cleareduser = false
+}
+
+// AddChildFilterIDs adds the "child_filters" edge to the ChildFilter entity by ids.
+func (m *ChildMutation) AddChildFilterIDs(ids ...int) {
+	if m.child_filters == nil {
+		m.child_filters = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.child_filters[ids[i]] = struct{}{}
+	}
+}
+
+// ClearChildFilters clears the "child_filters" edge to the ChildFilter entity.
+func (m *ChildMutation) ClearChildFilters() {
+	m.clearedchild_filters = true
+}
+
+// ChildFiltersCleared reports if the "child_filters" edge to the ChildFilter entity was cleared.
+func (m *ChildMutation) ChildFiltersCleared() bool {
+	return m.clearedchild_filters
+}
+
+// RemoveChildFilterIDs removes the "child_filters" edge to the ChildFilter entity by IDs.
+func (m *ChildMutation) RemoveChildFilterIDs(ids ...int) {
+	if m.removedchild_filters == nil {
+		m.removedchild_filters = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.child_filters, ids[i])
+		m.removedchild_filters[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedChildFilters returns the removed IDs of the "child_filters" edge to the ChildFilter entity.
+func (m *ChildMutation) RemovedChildFiltersIDs() (ids []int) {
+	for id := range m.removedchild_filters {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ChildFiltersIDs returns the "child_filters" edge IDs in the mutation.
+func (m *ChildMutation) ChildFiltersIDs() (ids []int) {
+	for id := range m.child_filters {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetChildFilters resets all changes to the "child_filters" edge.
+func (m *ChildMutation) ResetChildFilters() {
+	m.child_filters = nil
+	m.clearedchild_filters = false
+	m.removedchild_filters = nil
+}
+
+// Where appends a list predicates to the ChildMutation builder.
+func (m *ChildMutation) Where(ps ...predicate.Child) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ChildMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ChildMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Child, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ChildMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ChildMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Child).
+func (m *ChildMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ChildMutation) Fields() []string {
+	fields := make([]string, 0, 5)
+	if m.first_name != nil {
+		fields = append(fields, child.FieldFirstName)
+	}
+	if m.last_name != nil {
+		fields = append(fields, child.FieldLastName)
+	}
+	if m.birth_date != nil {
+		fields = append(fields, child.FieldBirthDate)
+	}
+	if m.user != nil {
+		fields = append(fields, child.FieldUserID)
+	}
+	if m.created_at != nil {
+		fields = append(fields, child.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ChildMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case child.FieldFirstName:
+		return m.FirstName()
+	case child.FieldLastName:
+		return m.LastName()
+	case child.FieldBirthDate:
+		return m.BirthDate()
+	case child.FieldUserID:
+		return m.UserID()
+	case child.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ChildMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case child.FieldFirstName:
+		return m.OldFirstName(ctx)
+	case child.FieldLastName:
+		return m.OldLastName(ctx)
+	case child.FieldBirthDate:
+		return m.OldBirthDate(ctx)
+	case child.FieldUserID:
+		return m.OldUserID(ctx)
+	case child.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown Child field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ChildMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case child.FieldFirstName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFirstName(v)
+		return nil
+	case child.FieldLastName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastName(v)
+		return nil
+	case child.FieldBirthDate:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBirthDate(v)
+		return nil
+	case child.FieldUserID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	case child.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Child field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ChildMutation) AddedFields() []string {
+	var fields []string
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ChildMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ChildMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Child numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ChildMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ChildMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ChildMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown Child nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ChildMutation) ResetField(name string) error {
+	switch name {
+	case child.FieldFirstName:
+		m.ResetFirstName()
+		return nil
+	case child.FieldLastName:
+		m.ResetLastName()
+		return nil
+	case child.FieldBirthDate:
+		m.ResetBirthDate()
+		return nil
+	case child.FieldUserID:
+		m.ResetUserID()
+		return nil
+	case child.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown Child field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ChildMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.user != nil {
+		edges = append(edges, child.EdgeUser)
+	}
+	if m.child_filters != nil {
+		edges = append(edges, child.EdgeChildFilters)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ChildMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case child.EdgeUser:
+		if id := m.user; id != nil {
+			return []ent.Value{*id}
+		}
+	case child.EdgeChildFilters:
+		ids := make([]ent.Value, 0, len(m.child_filters))
+		for id := range m.child_filters {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ChildMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.removedchild_filters != nil {
+		edges = append(edges, child.EdgeChildFilters)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ChildMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case child.EdgeChildFilters:
+		ids := make([]ent.Value, 0, len(m.removedchild_filters))
+		for id := range m.removedchild_filters {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ChildMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.cleareduser {
+		edges = append(edges, child.EdgeUser)
+	}
+	if m.clearedchild_filters {
+		edges = append(edges, child.EdgeChildFilters)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ChildMutation) EdgeCleared(name string) bool {
+	switch name {
+	case child.EdgeUser:
+		return m.cleareduser
+	case child.EdgeChildFilters:
+		return m.clearedchild_filters
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ChildMutation) ClearEdge(name string) error {
+	switch name {
+	case child.EdgeUser:
+		m.ClearUser()
+		return nil
+	}
+	return fmt.Errorf("unknown Child unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ChildMutation) ResetEdge(name string) error {
+	switch name {
+	case child.EdgeUser:
+		m.ResetUser()
+		return nil
+	case child.EdgeChildFilters:
+		m.ResetChildFilters()
+		return nil
+	}
+	return fmt.Errorf("unknown Child edge %s", name)
+}
+
+// ChildFilterMutation represents an operation that mutates the ChildFilter nodes in the graph.
+type ChildFilterMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int
+	value         *string
+	clearedFields map[string]struct{}
+	child         *int
+	clearedchild  bool
+	filter        *int
+	clearedfilter bool
+	done          bool
+	oldValue      func(context.Context) (*ChildFilter, error)
+	predicates    []predicate.ChildFilter
+}
+
+var _ ent.Mutation = (*ChildFilterMutation)(nil)
+
+// childfilterOption allows management of the mutation configuration using functional options.
+type childfilterOption func(*ChildFilterMutation)
+
+// newChildFilterMutation creates new mutation for the ChildFilter entity.
+func newChildFilterMutation(c config, op Op, opts ...childfilterOption) *ChildFilterMutation {
+	m := &ChildFilterMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeChildFilter,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withChildFilterID sets the ID field of the mutation.
+func withChildFilterID(id int) childfilterOption {
+	return func(m *ChildFilterMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ChildFilter
+		)
+		m.oldValue = func(ctx context.Context) (*ChildFilter, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ChildFilter.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withChildFilter sets the old ChildFilter of the mutation.
+func withChildFilter(node *ChildFilter) childfilterOption {
+	return func(m *ChildFilterMutation) {
+		m.oldValue = func(context.Context) (*ChildFilter, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ChildFilterMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ChildFilterMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ChildFilterMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ChildFilterMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ChildFilter.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetChildID sets the "child_id" field.
+func (m *ChildFilterMutation) SetChildID(i int) {
+	m.child = &i
+}
+
+// ChildID returns the value of the "child_id" field in the mutation.
+func (m *ChildFilterMutation) ChildID() (r int, exists bool) {
+	v := m.child
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChildID returns the old "child_id" field's value of the ChildFilter entity.
+// If the ChildFilter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChildFilterMutation) OldChildID(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChildID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChildID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChildID: %w", err)
+	}
+	return oldValue.ChildID, nil
+}
+
+// ResetChildID resets all changes to the "child_id" field.
+func (m *ChildFilterMutation) ResetChildID() {
+	m.child = nil
+}
+
+// SetFilterID sets the "filter_id" field.
+func (m *ChildFilterMutation) SetFilterID(i int) {
+	m.filter = &i
+}
+
+// FilterID returns the value of the "filter_id" field in the mutation.
+func (m *ChildFilterMutation) FilterID() (r int, exists bool) {
+	v := m.filter
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFilterID returns the old "filter_id" field's value of the ChildFilter entity.
+// If the ChildFilter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChildFilterMutation) OldFilterID(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFilterID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFilterID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFilterID: %w", err)
+	}
+	return oldValue.FilterID, nil
+}
+
+// ResetFilterID resets all changes to the "filter_id" field.
+func (m *ChildFilterMutation) ResetFilterID() {
+	m.filter = nil
+}
+
+// SetValue sets the "value" field.
+func (m *ChildFilterMutation) SetValue(s string) {
+	m.value = &s
+}
+
+// Value returns the value of the "value" field in the mutation.
+func (m *ChildFilterMutation) Value() (r string, exists bool) {
+	v := m.value
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldValue returns the old "value" field's value of the ChildFilter entity.
+// If the ChildFilter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChildFilterMutation) OldValue(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldValue is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldValue requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldValue: %w", err)
+	}
+	return oldValue.Value, nil
+}
+
+// ResetValue resets all changes to the "value" field.
+func (m *ChildFilterMutation) ResetValue() {
+	m.value = nil
+}
+
+// ClearChild clears the "child" edge to the Child entity.
+func (m *ChildFilterMutation) ClearChild() {
+	m.clearedchild = true
+	m.clearedFields[childfilter.FieldChildID] = struct{}{}
+}
+
+// ChildCleared reports if the "child" edge to the Child entity was cleared.
+func (m *ChildFilterMutation) ChildCleared() bool {
+	return m.clearedchild
+}
+
+// ChildIDs returns the "child" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ChildID instead. It exists only for internal usage by the builders.
+func (m *ChildFilterMutation) ChildIDs() (ids []int) {
+	if id := m.child; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetChild resets all changes to the "child" edge.
+func (m *ChildFilterMutation) ResetChild() {
+	m.child = nil
+	m.clearedchild = false
+}
+
+// ClearFilter clears the "filter" edge to the Filter entity.
+func (m *ChildFilterMutation) ClearFilter() {
+	m.clearedfilter = true
+	m.clearedFields[childfilter.FieldFilterID] = struct{}{}
+}
+
+// FilterCleared reports if the "filter" edge to the Filter entity was cleared.
+func (m *ChildFilterMutation) FilterCleared() bool {
+	return m.clearedfilter
+}
+
+// FilterIDs returns the "filter" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// FilterID instead. It exists only for internal usage by the builders.
+func (m *ChildFilterMutation) FilterIDs() (ids []int) {
+	if id := m.filter; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetFilter resets all changes to the "filter" edge.
+func (m *ChildFilterMutation) ResetFilter() {
+	m.filter = nil
+	m.clearedfilter = false
+}
+
+// Where appends a list predicates to the ChildFilterMutation builder.
+func (m *ChildFilterMutation) Where(ps ...predicate.ChildFilter) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ChildFilterMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ChildFilterMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ChildFilter, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ChildFilterMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ChildFilterMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ChildFilter).
+func (m *ChildFilterMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ChildFilterMutation) Fields() []string {
+	fields := make([]string, 0, 3)
+	if m.child != nil {
+		fields = append(fields, childfilter.FieldChildID)
+	}
+	if m.filter != nil {
+		fields = append(fields, childfilter.FieldFilterID)
+	}
+	if m.value != nil {
+		fields = append(fields, childfilter.FieldValue)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ChildFilterMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case childfilter.FieldChildID:
+		return m.ChildID()
+	case childfilter.FieldFilterID:
+		return m.FilterID()
+	case childfilter.FieldValue:
+		return m.Value()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ChildFilterMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case childfilter.FieldChildID:
+		return m.OldChildID(ctx)
+	case childfilter.FieldFilterID:
+		return m.OldFilterID(ctx)
+	case childfilter.FieldValue:
+		return m.OldValue(ctx)
+	}
+	return nil, fmt.Errorf("unknown ChildFilter field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ChildFilterMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case childfilter.FieldChildID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChildID(v)
+		return nil
+	case childfilter.FieldFilterID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFilterID(v)
+		return nil
+	case childfilter.FieldValue:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetValue(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ChildFilter field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ChildFilterMutation) AddedFields() []string {
+	var fields []string
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ChildFilterMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ChildFilterMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown ChildFilter numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ChildFilterMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ChildFilterMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ChildFilterMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown ChildFilter nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ChildFilterMutation) ResetField(name string) error {
+	switch name {
+	case childfilter.FieldChildID:
+		m.ResetChildID()
+		return nil
+	case childfilter.FieldFilterID:
+		m.ResetFilterID()
+		return nil
+	case childfilter.FieldValue:
+		m.ResetValue()
+		return nil
+	}
+	return fmt.Errorf("unknown ChildFilter field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ChildFilterMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.child != nil {
+		edges = append(edges, childfilter.EdgeChild)
+	}
+	if m.filter != nil {
+		edges = append(edges, childfilter.EdgeFilter)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ChildFilterMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case childfilter.EdgeChild:
+		if id := m.child; id != nil {
+			return []ent.Value{*id}
+		}
+	case childfilter.EdgeFilter:
+		if id := m.filter; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ChildFilterMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ChildFilterMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ChildFilterMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedchild {
+		edges = append(edges, childfilter.EdgeChild)
+	}
+	if m.clearedfilter {
+		edges = append(edges, childfilter.EdgeFilter)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ChildFilterMutation) EdgeCleared(name string) bool {
+	switch name {
+	case childfilter.EdgeChild:
+		return m.clearedchild
+	case childfilter.EdgeFilter:
+		return m.clearedfilter
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ChildFilterMutation) ClearEdge(name string) error {
+	switch name {
+	case childfilter.EdgeChild:
+		m.ClearChild()
+		return nil
+	case childfilter.EdgeFilter:
+		m.ClearFilter()
+		return nil
+	}
+	return fmt.Errorf("unknown ChildFilter unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ChildFilterMutation) ResetEdge(name string) error {
+	switch name {
+	case childfilter.EdgeChild:
+		m.ResetChild()
+		return nil
+	case childfilter.EdgeFilter:
+		m.ResetFilter()
+		return nil
+	}
+	return fmt.Errorf("unknown ChildFilter edge %s", name)
+}
+
 // FilterMutation represents an operation that mutates the Filter nodes in the graph.
 type FilterMutation struct {
 	config
@@ -2888,6 +4113,9 @@ type FilterMutation struct {
 	benefit_filters        map[int]struct{}
 	removedbenefit_filters map[int]struct{}
 	clearedbenefit_filters bool
+	child_filters          map[int]struct{}
+	removedchild_filters   map[int]struct{}
+	clearedchild_filters   bool
 	done                   bool
 	oldValue               func(context.Context) (*Filter, error)
 	predicates             []predicate.Filter
@@ -3271,6 +4499,60 @@ func (m *FilterMutation) ResetBenefitFilters() {
 	m.removedbenefit_filters = nil
 }
 
+// AddChildFilterIDs adds the "child_filters" edge to the ChildFilter entity by ids.
+func (m *FilterMutation) AddChildFilterIDs(ids ...int) {
+	if m.child_filters == nil {
+		m.child_filters = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.child_filters[ids[i]] = struct{}{}
+	}
+}
+
+// ClearChildFilters clears the "child_filters" edge to the ChildFilter entity.
+func (m *FilterMutation) ClearChildFilters() {
+	m.clearedchild_filters = true
+}
+
+// ChildFiltersCleared reports if the "child_filters" edge to the ChildFilter entity was cleared.
+func (m *FilterMutation) ChildFiltersCleared() bool {
+	return m.clearedchild_filters
+}
+
+// RemoveChildFilterIDs removes the "child_filters" edge to the ChildFilter entity by IDs.
+func (m *FilterMutation) RemoveChildFilterIDs(ids ...int) {
+	if m.removedchild_filters == nil {
+		m.removedchild_filters = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.child_filters, ids[i])
+		m.removedchild_filters[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedChildFilters returns the removed IDs of the "child_filters" edge to the ChildFilter entity.
+func (m *FilterMutation) RemovedChildFiltersIDs() (ids []int) {
+	for id := range m.removedchild_filters {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ChildFiltersIDs returns the "child_filters" edge IDs in the mutation.
+func (m *FilterMutation) ChildFiltersIDs() (ids []int) {
+	for id := range m.child_filters {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetChildFilters resets all changes to the "child_filters" edge.
+func (m *FilterMutation) ResetChildFilters() {
+	m.child_filters = nil
+	m.clearedchild_filters = false
+	m.removedchild_filters = nil
+}
+
 // Where appends a list predicates to the FilterMutation builder.
 func (m *FilterMutation) Where(ps ...predicate.Filter) {
 	m.predicates = append(m.predicates, ps...)
@@ -3464,12 +4746,15 @@ func (m *FilterMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *FilterMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.user_filters != nil {
 		edges = append(edges, filter.EdgeUserFilters)
 	}
 	if m.benefit_filters != nil {
 		edges = append(edges, filter.EdgeBenefitFilters)
+	}
+	if m.child_filters != nil {
+		edges = append(edges, filter.EdgeChildFilters)
 	}
 	return edges
 }
@@ -3490,18 +4775,27 @@ func (m *FilterMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case filter.EdgeChildFilters:
+		ids := make([]ent.Value, 0, len(m.child_filters))
+		for id := range m.child_filters {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *FilterMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.removeduser_filters != nil {
 		edges = append(edges, filter.EdgeUserFilters)
 	}
 	if m.removedbenefit_filters != nil {
 		edges = append(edges, filter.EdgeBenefitFilters)
+	}
+	if m.removedchild_filters != nil {
+		edges = append(edges, filter.EdgeChildFilters)
 	}
 	return edges
 }
@@ -3522,18 +4816,27 @@ func (m *FilterMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case filter.EdgeChildFilters:
+		ids := make([]ent.Value, 0, len(m.removedchild_filters))
+		for id := range m.removedchild_filters {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *FilterMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.cleareduser_filters {
 		edges = append(edges, filter.EdgeUserFilters)
 	}
 	if m.clearedbenefit_filters {
 		edges = append(edges, filter.EdgeBenefitFilters)
+	}
+	if m.clearedchild_filters {
+		edges = append(edges, filter.EdgeChildFilters)
 	}
 	return edges
 }
@@ -3546,6 +4849,8 @@ func (m *FilterMutation) EdgeCleared(name string) bool {
 		return m.cleareduser_filters
 	case filter.EdgeBenefitFilters:
 		return m.clearedbenefit_filters
+	case filter.EdgeChildFilters:
+		return m.clearedchild_filters
 	}
 	return false
 }
@@ -3568,6 +4873,9 @@ func (m *FilterMutation) ResetEdge(name string) error {
 	case filter.EdgeBenefitFilters:
 		m.ResetBenefitFilters()
 		return nil
+	case filter.EdgeChildFilters:
+		m.ResetChildFilters()
+		return nil
 	}
 	return fmt.Errorf("unknown Filter edge %s", name)
 }
@@ -3588,6 +4896,9 @@ type UserMutation struct {
 	user_filters        map[int]struct{}
 	removeduser_filters map[int]struct{}
 	cleareduser_filters bool
+	children            map[int]struct{}
+	removedchildren     map[int]struct{}
+	clearedchildren     bool
 	done                bool
 	oldValue            func(context.Context) (*User, error)
 	predicates          []predicate.User
@@ -3974,6 +5285,60 @@ func (m *UserMutation) ResetUserFilters() {
 	m.removeduser_filters = nil
 }
 
+// AddChildIDs adds the "children" edge to the Child entity by ids.
+func (m *UserMutation) AddChildIDs(ids ...int) {
+	if m.children == nil {
+		m.children = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.children[ids[i]] = struct{}{}
+	}
+}
+
+// ClearChildren clears the "children" edge to the Child entity.
+func (m *UserMutation) ClearChildren() {
+	m.clearedchildren = true
+}
+
+// ChildrenCleared reports if the "children" edge to the Child entity was cleared.
+func (m *UserMutation) ChildrenCleared() bool {
+	return m.clearedchildren
+}
+
+// RemoveChildIDs removes the "children" edge to the Child entity by IDs.
+func (m *UserMutation) RemoveChildIDs(ids ...int) {
+	if m.removedchildren == nil {
+		m.removedchildren = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.children, ids[i])
+		m.removedchildren[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedChildren returns the removed IDs of the "children" edge to the Child entity.
+func (m *UserMutation) RemovedChildrenIDs() (ids []int) {
+	for id := range m.removedchildren {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ChildrenIDs returns the "children" edge IDs in the mutation.
+func (m *UserMutation) ChildrenIDs() (ids []int) {
+	for id := range m.children {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetChildren resets all changes to the "children" edge.
+func (m *UserMutation) ResetChildren() {
+	m.children = nil
+	m.clearedchildren = false
+	m.removedchildren = nil
+}
+
 // Where appends a list predicates to the UserMutation builder.
 func (m *UserMutation) Where(ps ...predicate.User) {
 	m.predicates = append(m.predicates, ps...)
@@ -4201,9 +5566,12 @@ func (m *UserMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *UserMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.user_filters != nil {
 		edges = append(edges, user.EdgeUserFilters)
+	}
+	if m.children != nil {
+		edges = append(edges, user.EdgeChildren)
 	}
 	return edges
 }
@@ -4218,15 +5586,24 @@ func (m *UserMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case user.EdgeChildren:
+		ids := make([]ent.Value, 0, len(m.children))
+		for id := range m.children {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *UserMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.removeduser_filters != nil {
 		edges = append(edges, user.EdgeUserFilters)
+	}
+	if m.removedchildren != nil {
+		edges = append(edges, user.EdgeChildren)
 	}
 	return edges
 }
@@ -4241,15 +5618,24 @@ func (m *UserMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case user.EdgeChildren:
+		ids := make([]ent.Value, 0, len(m.removedchildren))
+		for id := range m.removedchildren {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *UserMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.cleareduser_filters {
 		edges = append(edges, user.EdgeUserFilters)
+	}
+	if m.clearedchildren {
+		edges = append(edges, user.EdgeChildren)
 	}
 	return edges
 }
@@ -4260,6 +5646,8 @@ func (m *UserMutation) EdgeCleared(name string) bool {
 	switch name {
 	case user.EdgeUserFilters:
 		return m.cleareduser_filters
+	case user.EdgeChildren:
+		return m.clearedchildren
 	}
 	return false
 }
@@ -4278,6 +5666,9 @@ func (m *UserMutation) ResetEdge(name string) error {
 	switch name {
 	case user.EdgeUserFilters:
 		m.ResetUserFilters()
+		return nil
+	case user.EdgeChildren:
+		m.ResetChildren()
 		return nil
 	}
 	return fmt.Errorf("unknown User edge %s", name)

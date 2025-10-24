@@ -21,6 +21,12 @@ type BenefitFilter func(*sql.Selector)
 // Category is the predicate function for category builders.
 type Category func(*sql.Selector)
 
+// Child is the predicate function for child builders.
+type Child func(*sql.Selector)
+
+// ChildFilter is the predicate function for childfilter builders.
+type ChildFilter func(*sql.Selector)
+
 // Filter is the predicate function for filter builders.
 type Filter func(*sql.Selector)
 

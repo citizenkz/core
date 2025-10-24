@@ -21,6 +21,8 @@ import (
 	"github.com/citizenkz/core/ent/benefitcategory"
 	"github.com/citizenkz/core/ent/benefitfilter"
 	"github.com/citizenkz/core/ent/category"
+	"github.com/citizenkz/core/ent/child"
+	"github.com/citizenkz/core/ent/childfilter"
 	"github.com/citizenkz/core/ent/filter"
 	"github.com/citizenkz/core/ent/user"
 	"github.com/citizenkz/core/ent/userfilter"
@@ -41,6 +43,10 @@ type Client struct {
 	BenefitFilter *BenefitFilterClient
 	// Category is the client for interacting with the Category builders.
 	Category *CategoryClient
+	// Child is the client for interacting with the Child builders.
+	Child *ChildClient
+	// ChildFilter is the client for interacting with the ChildFilter builders.
+	ChildFilter *ChildFilterClient
 	// Filter is the client for interacting with the Filter builders.
 	Filter *FilterClient
 	// User is the client for interacting with the User builders.
@@ -63,6 +69,8 @@ func (c *Client) init() {
 	c.BenefitCategory = NewBenefitCategoryClient(c.config)
 	c.BenefitFilter = NewBenefitFilterClient(c.config)
 	c.Category = NewCategoryClient(c.config)
+	c.Child = NewChildClient(c.config)
+	c.ChildFilter = NewChildFilterClient(c.config)
 	c.Filter = NewFilterClient(c.config)
 	c.User = NewUserClient(c.config)
 	c.UserFilter = NewUserFilterClient(c.config)
@@ -163,6 +171,8 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		BenefitCategory: NewBenefitCategoryClient(cfg),
 		BenefitFilter:   NewBenefitFilterClient(cfg),
 		Category:        NewCategoryClient(cfg),
+		Child:           NewChildClient(cfg),
+		ChildFilter:     NewChildFilterClient(cfg),
 		Filter:          NewFilterClient(cfg),
 		User:            NewUserClient(cfg),
 		UserFilter:      NewUserFilterClient(cfg),
@@ -190,6 +200,8 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		BenefitCategory: NewBenefitCategoryClient(cfg),
 		BenefitFilter:   NewBenefitFilterClient(cfg),
 		Category:        NewCategoryClient(cfg),
+		Child:           NewChildClient(cfg),
+		ChildFilter:     NewChildFilterClient(cfg),
 		Filter:          NewFilterClient(cfg),
 		User:            NewUserClient(cfg),
 		UserFilter:      NewUserFilterClient(cfg),
@@ -222,8 +234,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.Attempt, c.Benefit, c.BenefitCategory, c.BenefitFilter, c.Category, c.Filter,
-		c.User, c.UserFilter,
+		c.Attempt, c.Benefit, c.BenefitCategory, c.BenefitFilter, c.Category, c.Child,
+		c.ChildFilter, c.Filter, c.User, c.UserFilter,
 	} {
 		n.Use(hooks...)
 	}
@@ -233,8 +245,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Attempt, c.Benefit, c.BenefitCategory, c.BenefitFilter, c.Category, c.Filter,
-		c.User, c.UserFilter,
+		c.Attempt, c.Benefit, c.BenefitCategory, c.BenefitFilter, c.Category, c.Child,
+		c.ChildFilter, c.Filter, c.User, c.UserFilter,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -253,6 +265,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.BenefitFilter.mutate(ctx, m)
 	case *CategoryMutation:
 		return c.Category.mutate(ctx, m)
+	case *ChildMutation:
+		return c.Child.mutate(ctx, m)
+	case *ChildFilterMutation:
+		return c.ChildFilter.mutate(ctx, m)
 	case *FilterMutation:
 		return c.Filter.mutate(ctx, m)
 	case *UserMutation:
@@ -1041,6 +1057,336 @@ func (c *CategoryClient) mutate(ctx context.Context, m *CategoryMutation) (Value
 	}
 }
 
+// ChildClient is a client for the Child schema.
+type ChildClient struct {
+	config
+}
+
+// NewChildClient returns a client for the Child from the given config.
+func NewChildClient(c config) *ChildClient {
+	return &ChildClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `child.Hooks(f(g(h())))`.
+func (c *ChildClient) Use(hooks ...Hook) {
+	c.hooks.Child = append(c.hooks.Child, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `child.Intercept(f(g(h())))`.
+func (c *ChildClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Child = append(c.inters.Child, interceptors...)
+}
+
+// Create returns a builder for creating a Child entity.
+func (c *ChildClient) Create() *ChildCreate {
+	mutation := newChildMutation(c.config, OpCreate)
+	return &ChildCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Child entities.
+func (c *ChildClient) CreateBulk(builders ...*ChildCreate) *ChildCreateBulk {
+	return &ChildCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ChildClient) MapCreateBulk(slice any, setFunc func(*ChildCreate, int)) *ChildCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ChildCreateBulk{err: fmt.Errorf("calling to ChildClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ChildCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ChildCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Child.
+func (c *ChildClient) Update() *ChildUpdate {
+	mutation := newChildMutation(c.config, OpUpdate)
+	return &ChildUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ChildClient) UpdateOne(_m *Child) *ChildUpdateOne {
+	mutation := newChildMutation(c.config, OpUpdateOne, withChild(_m))
+	return &ChildUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ChildClient) UpdateOneID(id int) *ChildUpdateOne {
+	mutation := newChildMutation(c.config, OpUpdateOne, withChildID(id))
+	return &ChildUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Child.
+func (c *ChildClient) Delete() *ChildDelete {
+	mutation := newChildMutation(c.config, OpDelete)
+	return &ChildDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ChildClient) DeleteOne(_m *Child) *ChildDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ChildClient) DeleteOneID(id int) *ChildDeleteOne {
+	builder := c.Delete().Where(child.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ChildDeleteOne{builder}
+}
+
+// Query returns a query builder for Child.
+func (c *ChildClient) Query() *ChildQuery {
+	return &ChildQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeChild},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Child entity by its id.
+func (c *ChildClient) Get(ctx context.Context, id int) (*Child, error) {
+	return c.Query().Where(child.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ChildClient) GetX(ctx context.Context, id int) *Child {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a Child.
+func (c *ChildClient) QueryUser(_m *Child) *UserQuery {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(child.Table, child.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, child.UserTable, child.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChildFilters queries the child_filters edge of a Child.
+func (c *ChildClient) QueryChildFilters(_m *Child) *ChildFilterQuery {
+	query := (&ChildFilterClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(child.Table, child.FieldID, id),
+			sqlgraph.To(childfilter.Table, childfilter.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, child.ChildFiltersTable, child.ChildFiltersColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ChildClient) Hooks() []Hook {
+	return c.hooks.Child
+}
+
+// Interceptors returns the client interceptors.
+func (c *ChildClient) Interceptors() []Interceptor {
+	return c.inters.Child
+}
+
+func (c *ChildClient) mutate(ctx context.Context, m *ChildMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ChildCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ChildUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ChildUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ChildDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Child mutation op: %q", m.Op())
+	}
+}
+
+// ChildFilterClient is a client for the ChildFilter schema.
+type ChildFilterClient struct {
+	config
+}
+
+// NewChildFilterClient returns a client for the ChildFilter from the given config.
+func NewChildFilterClient(c config) *ChildFilterClient {
+	return &ChildFilterClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `childfilter.Hooks(f(g(h())))`.
+func (c *ChildFilterClient) Use(hooks ...Hook) {
+	c.hooks.ChildFilter = append(c.hooks.ChildFilter, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `childfilter.Intercept(f(g(h())))`.
+func (c *ChildFilterClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ChildFilter = append(c.inters.ChildFilter, interceptors...)
+}
+
+// Create returns a builder for creating a ChildFilter entity.
+func (c *ChildFilterClient) Create() *ChildFilterCreate {
+	mutation := newChildFilterMutation(c.config, OpCreate)
+	return &ChildFilterCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ChildFilter entities.
+func (c *ChildFilterClient) CreateBulk(builders ...*ChildFilterCreate) *ChildFilterCreateBulk {
+	return &ChildFilterCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ChildFilterClient) MapCreateBulk(slice any, setFunc func(*ChildFilterCreate, int)) *ChildFilterCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ChildFilterCreateBulk{err: fmt.Errorf("calling to ChildFilterClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ChildFilterCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ChildFilterCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ChildFilter.
+func (c *ChildFilterClient) Update() *ChildFilterUpdate {
+	mutation := newChildFilterMutation(c.config, OpUpdate)
+	return &ChildFilterUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ChildFilterClient) UpdateOne(_m *ChildFilter) *ChildFilterUpdateOne {
+	mutation := newChildFilterMutation(c.config, OpUpdateOne, withChildFilter(_m))
+	return &ChildFilterUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ChildFilterClient) UpdateOneID(id int) *ChildFilterUpdateOne {
+	mutation := newChildFilterMutation(c.config, OpUpdateOne, withChildFilterID(id))
+	return &ChildFilterUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ChildFilter.
+func (c *ChildFilterClient) Delete() *ChildFilterDelete {
+	mutation := newChildFilterMutation(c.config, OpDelete)
+	return &ChildFilterDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ChildFilterClient) DeleteOne(_m *ChildFilter) *ChildFilterDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ChildFilterClient) DeleteOneID(id int) *ChildFilterDeleteOne {
+	builder := c.Delete().Where(childfilter.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ChildFilterDeleteOne{builder}
+}
+
+// Query returns a query builder for ChildFilter.
+func (c *ChildFilterClient) Query() *ChildFilterQuery {
+	return &ChildFilterQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeChildFilter},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ChildFilter entity by its id.
+func (c *ChildFilterClient) Get(ctx context.Context, id int) (*ChildFilter, error) {
+	return c.Query().Where(childfilter.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ChildFilterClient) GetX(ctx context.Context, id int) *ChildFilter {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryChild queries the child edge of a ChildFilter.
+func (c *ChildFilterClient) QueryChild(_m *ChildFilter) *ChildQuery {
+	query := (&ChildClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(childfilter.Table, childfilter.FieldID, id),
+			sqlgraph.To(child.Table, child.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, childfilter.ChildTable, childfilter.ChildColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryFilter queries the filter edge of a ChildFilter.
+func (c *ChildFilterClient) QueryFilter(_m *ChildFilter) *FilterQuery {
+	query := (&FilterClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(childfilter.Table, childfilter.FieldID, id),
+			sqlgraph.To(filter.Table, filter.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, childfilter.FilterTable, childfilter.FilterColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ChildFilterClient) Hooks() []Hook {
+	return c.hooks.ChildFilter
+}
+
+// Interceptors returns the client interceptors.
+func (c *ChildFilterClient) Interceptors() []Interceptor {
+	return c.inters.ChildFilter
+}
+
+func (c *ChildFilterClient) mutate(ctx context.Context, m *ChildFilterMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ChildFilterCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ChildFilterUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ChildFilterUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ChildFilterDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ChildFilter mutation op: %q", m.Op())
+	}
+}
+
 // FilterClient is a client for the Filter schema.
 type FilterClient struct {
 	config
@@ -1174,6 +1520,22 @@ func (c *FilterClient) QueryBenefitFilters(_m *Filter) *BenefitFilterQuery {
 			sqlgraph.From(filter.Table, filter.FieldID, id),
 			sqlgraph.To(benefitfilter.Table, benefitfilter.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, filter.BenefitFiltersTable, filter.BenefitFiltersColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChildFilters queries the child_filters edge of a Filter.
+func (c *FilterClient) QueryChildFilters(_m *Filter) *ChildFilterQuery {
+	query := (&ChildFilterClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(filter.Table, filter.FieldID, id),
+			sqlgraph.To(childfilter.Table, childfilter.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, filter.ChildFiltersTable, filter.ChildFiltersColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -1323,6 +1685,22 @@ func (c *UserClient) QueryUserFilters(_m *User) *UserFilterQuery {
 			sqlgraph.From(user.Table, user.FieldID, id),
 			sqlgraph.To(userfilter.Table, userfilter.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, user.UserFiltersTable, user.UserFiltersColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChildren queries the children edge of a User.
+func (c *UserClient) QueryChildren(_m *User) *ChildQuery {
+	query := (&ChildClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(child.Table, child.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.ChildrenTable, user.ChildrenColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -1523,11 +1901,11 @@ func (c *UserFilterClient) mutate(ctx context.Context, m *UserFilterMutation) (V
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Attempt, Benefit, BenefitCategory, BenefitFilter, Category, Filter, User,
-		UserFilter []ent.Hook
+		Attempt, Benefit, BenefitCategory, BenefitFilter, Category, Child, ChildFilter,
+		Filter, User, UserFilter []ent.Hook
 	}
 	inters struct {
-		Attempt, Benefit, BenefitCategory, BenefitFilter, Category, Filter, User,
-		UserFilter []ent.Interceptor
+		Attempt, Benefit, BenefitCategory, BenefitFilter, Category, Child, ChildFilter,
+		Filter, User, UserFilter []ent.Interceptor
 	}
 )

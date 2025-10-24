@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/citizenkz/core/ent/attempt"
+	"github.com/citizenkz/core/ent/child"
 	"github.com/citizenkz/core/ent/filter"
 	"github.com/citizenkz/core/ent/schema"
 	"github.com/citizenkz/core/ent/user"
@@ -30,6 +31,12 @@ func init() {
 	attemptDescID := attemptFields[0].Descriptor()
 	// attempt.DefaultID holds the default value on creation for the id field.
 	attempt.DefaultID = attemptDescID.Default.(func() uuid.UUID)
+	childFields := schema.Child{}.Fields()
+	_ = childFields
+	// childDescCreatedAt is the schema descriptor for created_at field.
+	childDescCreatedAt := childFields[4].Descriptor()
+	// child.DefaultCreatedAt holds the default value on creation for the created_at field.
+	child.DefaultCreatedAt = childDescCreatedAt.Default.(func() time.Time)
 	filterFields := schema.Filter{}.Fields()
 	_ = filterFields
 	// filterDescName is the schema descriptor for name field.
