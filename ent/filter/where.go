@@ -269,6 +269,29 @@ func HasBenefitFiltersWith(preds ...predicate.BenefitFilter) predicate.Filter {
 	})
 }
 
+// HasChildFilters applies the HasEdge predicate on the "child_filters" edge.
+func HasChildFilters() predicate.Filter {
+	return predicate.Filter(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ChildFiltersTable, ChildFiltersColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasChildFiltersWith applies the HasEdge predicate on the "child_filters" edge with a given conditions (other predicates).
+func HasChildFiltersWith(preds ...predicate.ChildFilter) predicate.Filter {
+	return predicate.Filter(func(s *sql.Selector) {
+		step := newChildFiltersStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Filter) predicate.Filter {
 	return predicate.Filter(sql.AndPredicates(predicates...))

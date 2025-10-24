@@ -17,6 +17,9 @@ import (
 	categoryServer "github.com/citizenkz/core/services/category/server"
 	categoryStorage "github.com/citizenkz/core/services/category/storage"
 	categoryUsecase "github.com/citizenkz/core/services/category/usecase"
+	childServer "github.com/citizenkz/core/services/child/server"
+	childStorage "github.com/citizenkz/core/services/child/storage"
+	childUsecase "github.com/citizenkz/core/services/child/usecase"
 	filterServer "github.com/citizenkz/core/services/filter/server"
 	filterStorage "github.com/citizenkz/core/services/filter/storage"
 	filterUsecase "github.com/citizenkz/core/services/filter/usecase"
@@ -91,6 +94,10 @@ func (s *server) Run() error {
 	benefitUsecase := benefitUsecase.New(s.log, benefitStorage, s.cfg)
 	benefitServer := benefitServer.New(s.log, benefitUsecase)
 
+	childStorage := childStorage.New(client, s.log)
+	childUsecase := childUsecase.New(s.log, childStorage, s.cfg)
+	childServer := childServer.New(s.log, childUsecase)
+
 	router.Route("/api/v1", func(apiRouter chi.Router) {
 		apiRouter.Route("/auth", func(authRouter chi.Router) {
 			authRouter.Post("/login", userServer.HandleLogin)
@@ -120,6 +127,14 @@ func (s *server) Run() error {
 			benefitRouter.Get("/{id}", benefitServer.HandleGet)
 			benefitRouter.Put("/{id}", benefitServer.HandleUpdate)
 			benefitRouter.Delete("/{id}", benefitServer.HandleDelete)
+		})
+		apiRouter.Route("/child", func(childRouter chi.Router) {
+			childRouter.Post("/", childServer.HandleCreate)
+			childRouter.Post("/list", childServer.HandleList)
+			childRouter.Get("/{id}", childServer.HandleGet)
+			childRouter.Put("/{id}", childServer.HandleUpdate)
+			childRouter.Delete("/{id}", childServer.HandleDelete)
+			childRouter.Post("/filters", childServer.HandleSaveFilters)
 		})
 	})
 

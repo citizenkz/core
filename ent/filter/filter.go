@@ -26,6 +26,8 @@ const (
 	EdgeUserFilters = "user_filters"
 	// EdgeBenefitFilters holds the string denoting the benefit_filters edge name in mutations.
 	EdgeBenefitFilters = "benefit_filters"
+	// EdgeChildFilters holds the string denoting the child_filters edge name in mutations.
+	EdgeChildFilters = "child_filters"
 	// Table holds the table name of the filter in the database.
 	Table = "filters"
 	// UserFiltersTable is the table that holds the user_filters relation/edge.
@@ -42,6 +44,13 @@ const (
 	BenefitFiltersInverseTable = "benefit_filters"
 	// BenefitFiltersColumn is the table column denoting the benefit_filters relation/edge.
 	BenefitFiltersColumn = "filter_id"
+	// ChildFiltersTable is the table that holds the child_filters relation/edge.
+	ChildFiltersTable = "child_filters"
+	// ChildFiltersInverseTable is the table name for the ChildFilter entity.
+	// It exists in this package in order to avoid circular dependency with the "childfilter" package.
+	ChildFiltersInverseTable = "child_filters"
+	// ChildFiltersColumn is the table column denoting the child_filters relation/edge.
+	ChildFiltersColumn = "filter_id"
 )
 
 // Columns holds all SQL columns for filter fields.
@@ -142,6 +151,20 @@ func ByBenefitFilters(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newBenefitFiltersStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByChildFiltersCount orders the results by child_filters count.
+func ByChildFiltersCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newChildFiltersStep(), opts...)
+	}
+}
+
+// ByChildFilters orders the results by child_filters terms.
+func ByChildFilters(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newChildFiltersStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newUserFiltersStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -154,5 +177,12 @@ func newBenefitFiltersStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BenefitFiltersInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, BenefitFiltersTable, BenefitFiltersColumn),
+	)
+}
+func newChildFiltersStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ChildFiltersInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ChildFiltersTable, ChildFiltersColumn),
 	)
 }

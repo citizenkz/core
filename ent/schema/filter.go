@@ -35,5 +35,6 @@ func (Filter) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("user_filters", UserFilter.Type),
 		edge.To("benefit_filters", BenefitFilter.Type),
+		edge.To("child_filters", ChildFilter.Type),
 	}
 }

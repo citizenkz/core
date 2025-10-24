@@ -17,6 +17,8 @@ import (
 	"github.com/citizenkz/core/ent/benefitcategory"
 	"github.com/citizenkz/core/ent/benefitfilter"
 	"github.com/citizenkz/core/ent/category"
+	"github.com/citizenkz/core/ent/child"
+	"github.com/citizenkz/core/ent/childfilter"
 	"github.com/citizenkz/core/ent/filter"
 	"github.com/citizenkz/core/ent/user"
 	"github.com/citizenkz/core/ent/userfilter"
@@ -85,6 +87,8 @@ func checkColumn(t, c string) error {
 			benefitcategory.Table: benefitcategory.ValidColumn,
 			benefitfilter.Table:   benefitfilter.ValidColumn,
 			category.Table:        category.ValidColumn,
+			child.Table:           child.ValidColumn,
+			childfilter.Table:     childfilter.ValidColumn,
 			filter.Table:          filter.ValidColumn,
 			user.Table:            user.ValidColumn,
 			userfilter.Table:      userfilter.ValidColumn,

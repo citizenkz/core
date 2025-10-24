@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/citizenkz/core/ent/child"
 	"github.com/citizenkz/core/ent/user"
 	"github.com/citizenkz/core/ent/userfilter"
 )
@@ -86,6 +87,21 @@ func (_c *UserCreate) AddUserFilters(v ...*UserFilter) *UserCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddUserFilterIDs(ids...)
+}
+
+// AddChildIDs adds the "children" edge to the Child entity by IDs.
+func (_c *UserCreate) AddChildIDs(ids ...int) *UserCreate {
+	_c.mutation.AddChildIDs(ids...)
+	return _c
+}
+
+// AddChildren adds the "children" edges to the Child entity.
+func (_c *UserCreate) AddChildren(v ...*Child) *UserCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddChildIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -220,6 +236,22 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(userfilter.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ChildrenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.ChildrenTable,
+			Columns: []string{user.ChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(child.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

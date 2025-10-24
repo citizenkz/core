@@ -28,6 +28,8 @@ const (
 	FieldCreatedAt = "created_at"
 	// EdgeUserFilters holds the string denoting the user_filters edge name in mutations.
 	EdgeUserFilters = "user_filters"
+	// EdgeChildren holds the string denoting the children edge name in mutations.
+	EdgeChildren = "children"
 	// Table holds the table name of the user in the database.
 	Table = "users"
 	// UserFiltersTable is the table that holds the user_filters relation/edge.
@@ -37,6 +39,13 @@ const (
 	UserFiltersInverseTable = "user_filters"
 	// UserFiltersColumn is the table column denoting the user_filters relation/edge.
 	UserFiltersColumn = "user_id"
+	// ChildrenTable is the table that holds the children relation/edge.
+	ChildrenTable = "childs"
+	// ChildrenInverseTable is the table name for the Child entity.
+	// It exists in this package in order to avoid circular dependency with the "child" package.
+	ChildrenInverseTable = "childs"
+	// ChildrenColumn is the table column denoting the children relation/edge.
+	ChildrenColumn = "user_id"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -122,10 +131,31 @@ func ByUserFilters(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newUserFiltersStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByChildrenCount orders the results by children count.
+func ByChildrenCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newChildrenStep(), opts...)
+	}
+}
+
+// ByChildren orders the results by children terms.
+func ByChildren(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newChildrenStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newUserFiltersStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(UserFiltersInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, UserFiltersTable, UserFiltersColumn),
+	)
+}
+func newChildrenStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ChildrenInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ChildrenTable, ChildrenColumn),
 	)
 }

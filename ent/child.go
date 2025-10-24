@@ -9,11 +9,12 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/citizenkz/core/ent/child"
 	"github.com/citizenkz/core/ent/user"
 )
 
-// User is the model entity for the User schema.
-type User struct {
+// Child is the model entity for the Child schema.
+type Child struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
@@ -23,57 +24,57 @@ type User struct {
 	LastName string `json:"last_name,omitempty"`
 	// BirthDate holds the value of the "birth_date" field.
 	BirthDate time.Time `json:"birth_date,omitempty"`
-	// Email holds the value of the "email" field.
-	Email string `json:"email,omitempty"`
-	// Password holds the value of the "password" field.
-	Password string `json:"-"`
+	// UserID holds the value of the "user_id" field.
+	UserID int `json:"user_id,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
-	// The values are being populated by the UserQuery when eager-loading is set.
-	Edges        UserEdges `json:"edges"`
+	// The values are being populated by the ChildQuery when eager-loading is set.
+	Edges        ChildEdges `json:"edges"`
 	selectValues sql.SelectValues
 }
 
-// UserEdges holds the relations/edges for other nodes in the graph.
-type UserEdges struct {
-	// UserFilters holds the value of the user_filters edge.
-	UserFilters []*UserFilter `json:"user_filters,omitempty"`
-	// Children holds the value of the children edge.
-	Children []*Child `json:"children,omitempty"`
+// ChildEdges holds the relations/edges for other nodes in the graph.
+type ChildEdges struct {
+	// User holds the value of the user edge.
+	User *User `json:"user,omitempty"`
+	// ChildFilters holds the value of the child_filters edge.
+	ChildFilters []*ChildFilter `json:"child_filters,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [2]bool
 }
 
-// UserFiltersOrErr returns the UserFilters value or an error if the edge
-// was not loaded in eager-loading.
-func (e UserEdges) UserFiltersOrErr() ([]*UserFilter, error) {
-	if e.loadedTypes[0] {
-		return e.UserFilters, nil
+// UserOrErr returns the User value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChildEdges) UserOrErr() (*User, error) {
+	if e.User != nil {
+		return e.User, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: user.Label}
 	}
-	return nil, &NotLoadedError{edge: "user_filters"}
+	return nil, &NotLoadedError{edge: "user"}
 }
 
-// ChildrenOrErr returns the Children value or an error if the edge
+// ChildFiltersOrErr returns the ChildFilters value or an error if the edge
 // was not loaded in eager-loading.
-func (e UserEdges) ChildrenOrErr() ([]*Child, error) {
+func (e ChildEdges) ChildFiltersOrErr() ([]*ChildFilter, error) {
 	if e.loadedTypes[1] {
-		return e.Children, nil
+		return e.ChildFilters, nil
 	}
-	return nil, &NotLoadedError{edge: "children"}
+	return nil, &NotLoadedError{edge: "child_filters"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
-func (*User) scanValues(columns []string) ([]any, error) {
+func (*Child) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case user.FieldID:
+		case child.FieldID, child.FieldUserID:
 			values[i] = new(sql.NullInt64)
-		case user.FieldFirstName, user.FieldLastName, user.FieldEmail, user.FieldPassword:
+		case child.FieldFirstName, child.FieldLastName:
 			values[i] = new(sql.NullString)
-		case user.FieldBirthDate, user.FieldCreatedAt:
+		case child.FieldBirthDate, child.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -83,50 +84,44 @@ func (*User) scanValues(columns []string) ([]any, error) {
 }
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
-// to the User fields.
-func (_m *User) assignValues(columns []string, values []any) error {
+// to the Child fields.
+func (_m *Child) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
 	for i := range columns {
 		switch columns[i] {
-		case user.FieldID:
+		case child.FieldID:
 			value, ok := values[i].(*sql.NullInt64)
 			if !ok {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			_m.ID = int(value.Int64)
-		case user.FieldFirstName:
+		case child.FieldFirstName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field first_name", values[i])
 			} else if value.Valid {
 				_m.FirstName = value.String
 			}
-		case user.FieldLastName:
+		case child.FieldLastName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field last_name", values[i])
 			} else if value.Valid {
 				_m.LastName = value.String
 			}
-		case user.FieldBirthDate:
+		case child.FieldBirthDate:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field birth_date", values[i])
 			} else if value.Valid {
 				_m.BirthDate = value.Time
 			}
-		case user.FieldEmail:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field email", values[i])
+		case child.FieldUserID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field user_id", values[i])
 			} else if value.Valid {
-				_m.Email = value.String
+				_m.UserID = int(value.Int64)
 			}
-		case user.FieldPassword:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field password", values[i])
-			} else if value.Valid {
-				_m.Password = value.String
-			}
-		case user.FieldCreatedAt:
+		case child.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
@@ -139,44 +134,44 @@ func (_m *User) assignValues(columns []string, values []any) error {
 	return nil
 }
 
-// Value returns the ent.Value that was dynamically selected and assigned to the User.
+// Value returns the ent.Value that was dynamically selected and assigned to the Child.
 // This includes values selected through modifiers, order, etc.
-func (_m *User) Value(name string) (ent.Value, error) {
+func (_m *Child) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryUserFilters queries the "user_filters" edge of the User entity.
-func (_m *User) QueryUserFilters() *UserFilterQuery {
-	return NewUserClient(_m.config).QueryUserFilters(_m)
+// QueryUser queries the "user" edge of the Child entity.
+func (_m *Child) QueryUser() *UserQuery {
+	return NewChildClient(_m.config).QueryUser(_m)
 }
 
-// QueryChildren queries the "children" edge of the User entity.
-func (_m *User) QueryChildren() *ChildQuery {
-	return NewUserClient(_m.config).QueryChildren(_m)
+// QueryChildFilters queries the "child_filters" edge of the Child entity.
+func (_m *Child) QueryChildFilters() *ChildFilterQuery {
+	return NewChildClient(_m.config).QueryChildFilters(_m)
 }
 
-// Update returns a builder for updating this User.
-// Note that you need to call User.Unwrap() before calling this method if this User
+// Update returns a builder for updating this Child.
+// Note that you need to call Child.Unwrap() before calling this method if this Child
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (_m *User) Update() *UserUpdateOne {
-	return NewUserClient(_m.config).UpdateOne(_m)
+func (_m *Child) Update() *ChildUpdateOne {
+	return NewChildClient(_m.config).UpdateOne(_m)
 }
 
-// Unwrap unwraps the User entity that was returned from a transaction after it was closed,
+// Unwrap unwraps the Child entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (_m *User) Unwrap() *User {
+func (_m *Child) Unwrap() *Child {
 	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
-		panic("ent: User is not a transactional entity")
+		panic("ent: Child is not a transactional entity")
 	}
 	_m.config.driver = _tx.drv
 	return _m
 }
 
 // String implements the fmt.Stringer.
-func (_m *User) String() string {
+func (_m *Child) String() string {
 	var builder strings.Builder
-	builder.WriteString("User(")
+	builder.WriteString("Child(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("first_name=")
 	builder.WriteString(_m.FirstName)
@@ -187,10 +182,8 @@ func (_m *User) String() string {
 	builder.WriteString("birth_date=")
 	builder.WriteString(_m.BirthDate.Format(time.ANSIC))
 	builder.WriteString(", ")
-	builder.WriteString("email=")
-	builder.WriteString(_m.Email)
-	builder.WriteString(", ")
-	builder.WriteString("password=<sensitive>")
+	builder.WriteString("user_id=")
+	builder.WriteString(fmt.Sprintf("%v", _m.UserID))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
@@ -198,5 +191,5 @@ func (_m *User) String() string {
 	return builder.String()
 }
 
-// Users is a parsable slice of User.
-type Users []*User
+// Childs is a parsable slice of Child.
+type Childs []*Child

@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/citizenkz/core/ent/benefitfilter"
+	"github.com/citizenkz/core/ent/childfilter"
 	"github.com/citizenkz/core/ent/filter"
 	"github.com/citizenkz/core/ent/predicate"
 	"github.com/citizenkz/core/ent/userfilter"
@@ -27,6 +28,7 @@ type FilterQuery struct {
 	predicates         []predicate.Filter
 	withUserFilters    *UserFilterQuery
 	withBenefitFilters *BenefitFilterQuery
+	withChildFilters   *ChildFilterQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -100,6 +102,28 @@ func (_q *FilterQuery) QueryBenefitFilters() *BenefitFilterQuery {
 			sqlgraph.From(filter.Table, filter.FieldID, selector),
 			sqlgraph.To(benefitfilter.Table, benefitfilter.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, filter.BenefitFiltersTable, filter.BenefitFiltersColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryChildFilters chains the current query on the "child_filters" edge.
+func (_q *FilterQuery) QueryChildFilters() *ChildFilterQuery {
+	query := (&ChildFilterClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(filter.Table, filter.FieldID, selector),
+			sqlgraph.To(childfilter.Table, childfilter.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, filter.ChildFiltersTable, filter.ChildFiltersColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -301,6 +325,7 @@ func (_q *FilterQuery) Clone() *FilterQuery {
 		predicates:         append([]predicate.Filter{}, _q.predicates...),
 		withUserFilters:    _q.withUserFilters.Clone(),
 		withBenefitFilters: _q.withBenefitFilters.Clone(),
+		withChildFilters:   _q.withChildFilters.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -326,6 +351,17 @@ func (_q *FilterQuery) WithBenefitFilters(opts ...func(*BenefitFilterQuery)) *Fi
 		opt(query)
 	}
 	_q.withBenefitFilters = query
+	return _q
+}
+
+// WithChildFilters tells the query-builder to eager-load the nodes that are connected to
+// the "child_filters" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *FilterQuery) WithChildFilters(opts ...func(*ChildFilterQuery)) *FilterQuery {
+	query := (&ChildFilterClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withChildFilters = query
 	return _q
 }
 
@@ -407,9 +443,10 @@ func (_q *FilterQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Filte
 	var (
 		nodes       = []*Filter{}
 		_spec       = _q.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			_q.withUserFilters != nil,
 			_q.withBenefitFilters != nil,
+			_q.withChildFilters != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -441,6 +478,13 @@ func (_q *FilterQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Filte
 		if err := _q.loadBenefitFilters(ctx, query, nodes,
 			func(n *Filter) { n.Edges.BenefitFilters = []*BenefitFilter{} },
 			func(n *Filter, e *BenefitFilter) { n.Edges.BenefitFilters = append(n.Edges.BenefitFilters, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withChildFilters; query != nil {
+		if err := _q.loadChildFilters(ctx, query, nodes,
+			func(n *Filter) { n.Edges.ChildFilters = []*ChildFilter{} },
+			func(n *Filter, e *ChildFilter) { n.Edges.ChildFilters = append(n.Edges.ChildFilters, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -492,6 +536,36 @@ func (_q *FilterQuery) loadBenefitFilters(ctx context.Context, query *BenefitFil
 	}
 	query.Where(predicate.BenefitFilter(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(filter.BenefitFiltersColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.FilterID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "filter_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *FilterQuery) loadChildFilters(ctx context.Context, query *ChildFilterQuery, nodes []*Filter, init func(*Filter), assign func(*Filter, *ChildFilter)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Filter)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(childfilter.FieldFilterID)
+	}
+	query.Where(predicate.ChildFilter(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(filter.ChildFiltersColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

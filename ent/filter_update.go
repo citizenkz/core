@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/citizenkz/core/ent/benefitfilter"
+	"github.com/citizenkz/core/ent/childfilter"
 	"github.com/citizenkz/core/ent/filter"
 	"github.com/citizenkz/core/ent/predicate"
 	"github.com/citizenkz/core/ent/userfilter"
@@ -120,6 +121,21 @@ func (_u *FilterUpdate) AddBenefitFilters(v ...*BenefitFilter) *FilterUpdate {
 	return _u.AddBenefitFilterIDs(ids...)
 }
 
+// AddChildFilterIDs adds the "child_filters" edge to the ChildFilter entity by IDs.
+func (_u *FilterUpdate) AddChildFilterIDs(ids ...int) *FilterUpdate {
+	_u.mutation.AddChildFilterIDs(ids...)
+	return _u
+}
+
+// AddChildFilters adds the "child_filters" edges to the ChildFilter entity.
+func (_u *FilterUpdate) AddChildFilters(v ...*ChildFilter) *FilterUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChildFilterIDs(ids...)
+}
+
 // Mutation returns the FilterMutation object of the builder.
 func (_u *FilterUpdate) Mutation() *FilterMutation {
 	return _u.mutation
@@ -165,6 +181,27 @@ func (_u *FilterUpdate) RemoveBenefitFilters(v ...*BenefitFilter) *FilterUpdate 
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBenefitFilterIDs(ids...)
+}
+
+// ClearChildFilters clears all "child_filters" edges to the ChildFilter entity.
+func (_u *FilterUpdate) ClearChildFilters() *FilterUpdate {
+	_u.mutation.ClearChildFilters()
+	return _u
+}
+
+// RemoveChildFilterIDs removes the "child_filters" edge to ChildFilter entities by IDs.
+func (_u *FilterUpdate) RemoveChildFilterIDs(ids ...int) *FilterUpdate {
+	_u.mutation.RemoveChildFilterIDs(ids...)
+	return _u
+}
+
+// RemoveChildFilters removes "child_filters" edges to ChildFilter entities.
+func (_u *FilterUpdate) RemoveChildFilters(v ...*ChildFilter) *FilterUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChildFilterIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -331,6 +368,51 @@ func (_u *FilterUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.ChildFiltersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   filter.ChildFiltersTable,
+			Columns: []string{filter.ChildFiltersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(childfilter.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChildFiltersIDs(); len(nodes) > 0 && !_u.mutation.ChildFiltersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   filter.ChildFiltersTable,
+			Columns: []string{filter.ChildFiltersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(childfilter.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChildFiltersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   filter.ChildFiltersTable,
+			Columns: []string{filter.ChildFiltersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(childfilter.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{filter.Label}
@@ -441,6 +523,21 @@ func (_u *FilterUpdateOne) AddBenefitFilters(v ...*BenefitFilter) *FilterUpdateO
 	return _u.AddBenefitFilterIDs(ids...)
 }
 
+// AddChildFilterIDs adds the "child_filters" edge to the ChildFilter entity by IDs.
+func (_u *FilterUpdateOne) AddChildFilterIDs(ids ...int) *FilterUpdateOne {
+	_u.mutation.AddChildFilterIDs(ids...)
+	return _u
+}
+
+// AddChildFilters adds the "child_filters" edges to the ChildFilter entity.
+func (_u *FilterUpdateOne) AddChildFilters(v ...*ChildFilter) *FilterUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddChildFilterIDs(ids...)
+}
+
 // Mutation returns the FilterMutation object of the builder.
 func (_u *FilterUpdateOne) Mutation() *FilterMutation {
 	return _u.mutation
@@ -486,6 +583,27 @@ func (_u *FilterUpdateOne) RemoveBenefitFilters(v ...*BenefitFilter) *FilterUpda
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBenefitFilterIDs(ids...)
+}
+
+// ClearChildFilters clears all "child_filters" edges to the ChildFilter entity.
+func (_u *FilterUpdateOne) ClearChildFilters() *FilterUpdateOne {
+	_u.mutation.ClearChildFilters()
+	return _u
+}
+
+// RemoveChildFilterIDs removes the "child_filters" edge to ChildFilter entities by IDs.
+func (_u *FilterUpdateOne) RemoveChildFilterIDs(ids ...int) *FilterUpdateOne {
+	_u.mutation.RemoveChildFilterIDs(ids...)
+	return _u
+}
+
+// RemoveChildFilters removes "child_filters" edges to ChildFilter entities.
+func (_u *FilterUpdateOne) RemoveChildFilters(v ...*ChildFilter) *FilterUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveChildFilterIDs(ids...)
 }
 
 // Where appends a list predicates to the FilterUpdate builder.
@@ -675,6 +793,51 @@ func (_u *FilterUpdateOne) sqlSave(ctx context.Context) (_node *Filter, err erro
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(benefitfilter.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ChildFiltersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   filter.ChildFiltersTable,
+			Columns: []string{filter.ChildFiltersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(childfilter.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedChildFiltersIDs(); len(nodes) > 0 && !_u.mutation.ChildFiltersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   filter.ChildFiltersTable,
+			Columns: []string{filter.ChildFiltersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(childfilter.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ChildFiltersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   filter.ChildFiltersTable,
+			Columns: []string{filter.ChildFiltersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(childfilter.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

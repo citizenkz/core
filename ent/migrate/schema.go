@@ -102,6 +102,56 @@ var (
 		Columns:    CategoriesColumns,
 		PrimaryKey: []*schema.Column{CategoriesColumns[0]},
 	}
+	// ChildsColumns holds the columns for the "childs" table.
+	ChildsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "first_name", Type: field.TypeString},
+		{Name: "last_name", Type: field.TypeString},
+		{Name: "birth_date", Type: field.TypeTime},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "user_id", Type: field.TypeInt},
+	}
+	// ChildsTable holds the schema information for the "childs" table.
+	ChildsTable = &schema.Table{
+		Name:       "childs",
+		Columns:    ChildsColumns,
+		PrimaryKey: []*schema.Column{ChildsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "childs_users_children",
+				Columns:    []*schema.Column{ChildsColumns[5]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+	}
+	// ChildFiltersColumns holds the columns for the "child_filters" table.
+	ChildFiltersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "value", Type: field.TypeString},
+		{Name: "child_id", Type: field.TypeInt},
+		{Name: "filter_id", Type: field.TypeInt},
+	}
+	// ChildFiltersTable holds the schema information for the "child_filters" table.
+	ChildFiltersTable = &schema.Table{
+		Name:       "child_filters",
+		Columns:    ChildFiltersColumns,
+		PrimaryKey: []*schema.Column{ChildFiltersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "child_filters_childs_child_filters",
+				Columns:    []*schema.Column{ChildFiltersColumns[2]},
+				RefColumns: []*schema.Column{ChildsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "child_filters_filters_child_filters",
+				Columns:    []*schema.Column{ChildFiltersColumns[3]},
+				RefColumns: []*schema.Column{FiltersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+	}
 	// FiltersColumns holds the columns for the "filters" table.
 	FiltersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -166,6 +216,8 @@ var (
 		BenefitCategoriesTable,
 		BenefitFiltersTable,
 		CategoriesTable,
+		ChildsTable,
+		ChildFiltersTable,
 		FiltersTable,
 		UsersTable,
 		UserFiltersTable,
@@ -177,6 +229,9 @@ func init() {
 	BenefitCategoriesTable.ForeignKeys[1].RefTable = CategoriesTable
 	BenefitFiltersTable.ForeignKeys[0].RefTable = BenefitsTable
 	BenefitFiltersTable.ForeignKeys[1].RefTable = FiltersTable
+	ChildsTable.ForeignKeys[0].RefTable = UsersTable
+	ChildFiltersTable.ForeignKeys[0].RefTable = ChildsTable
+	ChildFiltersTable.ForeignKeys[1].RefTable = FiltersTable
 	UserFiltersTable.ForeignKeys[0].RefTable = FiltersTable
 	UserFiltersTable.ForeignKeys[1].RefTable = UsersTable
 }
