@@ -9,6 +9,7 @@ import (
 	"github.com/citizenkz/core/services/filter/usecase"
 	"github.com/citizenkz/core/utils/json"
 	"github.com/citizenkz/core/utils/jwt"
+	"github.com/go-chi/chi/v5"
 )
 
 type server struct {
@@ -20,6 +21,7 @@ type Server interface {
 	List(w http.ResponseWriter, r *http.Request)
 	SaveUserFitlers(w http.ResponseWriter, r *http.Request)
 	Create(w http.ResponseWriter, r *http.Request)
+	Delete(w http.ResponseWriter, r *http.Request)
 }
 
 func New(log *slog.Logger, usecase usecase.UseCase) Server {
@@ -126,6 +128,34 @@ func (s *server) Create(w http.ResponseWriter, r *http.Request) {
 	resp, err := s.usecase.Create(r.Context(), req)
 	if err != nil {
 		s.log.Error("failed to usecase.Create", slog.String("error", err.Error()))
+		json.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	err = json.WriteJSON(w, http.StatusOK, resp)
+	if err != nil {
+		s.log.Error("failed to json.WriteJson", slog.String("error", err.Error()))
+		json.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+}
+
+func (s *server) Delete(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		s.log.Error("failed to strconv.Atoi", slog.String("error", err.Error()))
+		json.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	req := &entity.DeleteRequest{
+		ID: id,
+	}
+
+	resp, err := s.usecase.Delete(r.Context(), req)
+	if err != nil {
+		s.log.Error("failed to usecase.Delete", slog.String("error", err.Error()))
 		json.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}

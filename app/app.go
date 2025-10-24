@@ -113,6 +113,7 @@ func (s *server) Run() error {
 			filterRouter.Post("/", filterServer.Create)
 			filterRouter.Post("/save", filterServer.SaveUserFitlers)
 			filterRouter.Get("/", filterServer.List)
+			filterRouter.Delete("/{id}", filterServer.Delete)
 		})
 		apiRouter.Route("/category", func(categoryRouter chi.Router) {
 			categoryRouter.Post("/", categoryServer.HandleCreate)

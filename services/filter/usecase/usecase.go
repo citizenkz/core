@@ -19,6 +19,7 @@ type UseCase interface {
 	List(ctx context.Context, req *entity.ListRequest) (*entity.ListResponse, error)
 	SaveUserFilters(ctx context.Context, req *entity.SaveFilersRequest) (*entity.SaveFilterResponse, error)
 	Create(ctx context.Context, req *entity.CreateRequest) (*entity.CreateResponse, error)
+	Delete(ctx context.Context, req *entity.DeleteRequest) (*entity.DeleteResponse, error)
 }
 
 func New(log *slog.Logger, storage storage.Storage, cfg *config.Config) UseCase {
