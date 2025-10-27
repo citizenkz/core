@@ -31,6 +31,6 @@ jobs:
 
           echo "✅ Deploying to $SSH_ADDRESS..."
 
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no root@$SSH_ADDRESS 'cd /root/core && git pull'
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no root@$SSH_ADDRESS 'cd /root/azamat/core && git pull'
 
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no root@$SSH_ADDRESS 'cd /root/core && make start &'
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no root@$SSH_ADDRESS 'cd /root/azamat/core && make start &'
